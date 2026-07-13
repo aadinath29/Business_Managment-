@@ -1,0 +1,65 @@
+/**
+ * Leads Module Constants
+ */
+
+const LEAD_STATUS = {
+  NEW: 'New',
+  CONTACTED: 'Contacted',
+  QUALIFIED: 'Qualified',
+  NEGOTIATION: 'Negotiation',
+  CLOSED_WON: 'Closed Won',
+  CLOSED_LOST: 'Closed Lost'
+};
+
+const PRIORITY_LEVEL = {
+  LOW: 'Low',
+  MEDIUM: 'Medium',
+  HIGH: 'High',
+  CRITICAL: 'Critical'
+};
+
+const JOURNEY_STAGE = {
+  DISCOVERY: 'Discovery',
+  QUALIFICATION: 'Qualification',
+  SOLUTION: 'Solution',
+  PROPOSAL: 'Proposal',
+  NEGOTIATION: 'Negotiation',
+  EXECUTION: 'Execution',
+  DELIVERY: 'Delivery',
+  CUSTOMER_SUCCESS: 'Customer Success'
+};
+
+const JOURNEY_STAGE_ORDER = {
+  [JOURNEY_STAGE.DISCOVERY]: 1,
+  [JOURNEY_STAGE.QUALIFICATION]: 2,
+  [JOURNEY_STAGE.SOLUTION]: 3,
+  [JOURNEY_STAGE.PROPOSAL]: 4,
+  [JOURNEY_STAGE.NEGOTIATION]: 5,
+  [JOURNEY_STAGE.EXECUTION]: 6,
+  [JOURNEY_STAGE.DELIVERY]: 7,
+  [JOURNEY_STAGE.CUSTOMER_SUCCESS]: 8
+};
+
+const ACTIVITY_TYPE = {
+  LEAD_CREATED: 'Lead Created',
+  JOURNEY_UPDATED: 'Journey Updated',
+  STATUS_CHANGED: 'Status Changed',
+  STAGE_COMPLETED: 'Stage Completed'
+};
+
+const ERROR_CODES = {
+  LEAD_NOT_FOUND: 'LEAD_NOT_FOUND',
+  BRANCH_NOT_FOUND: 'BRANCH_NOT_FOUND',
+  TEAM_NOT_FOUND: 'TEAM_NOT_FOUND',
+  INVALID_STAGE: 'INVALID_STAGE',
+  INVALID_TRANSITION: 'INVALID_TRANSITION'
+};
+
+module.exports = {
+  LEAD_STATUS,
+  PRIORITY_LEVEL,
+  JOURNEY_STAGE,
+  JOURNEY_STAGE_ORDER,
+  ACTIVITY_TYPE,
+  ERROR_CODES
+};

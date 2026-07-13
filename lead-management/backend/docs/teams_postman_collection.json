@@ -1,0 +1,575 @@
+{
+  "info": {
+    "name": "CRM Lead Management - Phase 5 (Teams Module)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication Helpers",
+      "item": [
+        {
+          "name": "1. Login as Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@antigravity.com\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success) {",
+                  "    pm.environment.set(\"adminToken\", response.data.accessToken);",
+                  "    pm.environment.set(\"tenantId\", response.data.user.tenantId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Login as Developer (No Access)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"aarav.mehta@kosqu.com\",\n  \"password\": \"Dev@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success) {",
+                  "    pm.environment.set(\"devToken\", response.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Teams",
+      "item": [
+        {
+          "name": "Create Team (Provision Leader)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"team_name\": \"Spartans CRM Team\",\n  \"branch_id\": \"cccc0000-0000-0000-0000-000000000001\",\n  \"department\": \"CRM Development\",\n  \"leader_name\": \"Leonidas Spartans\",\n  \"leader_email\": \"leonidas@sparta.com\",\n  \"leader_password\": \"LeaderPass123\",\n  \"employee_id\": \"TL_LEO_300\",\n  \"designation\": \"Senior Team Leader\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teams",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success) {",
+                  "    pm.environment.set(\"testTeamId\", response.data.id);",
+                  "    pm.environment.set(\"testLeaderProfileId\", response.data.leader.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Teams List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teams?page=1&limit=10&department=CRM Development",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "department",
+                  "value": "CRM Development"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Team by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teams/{{testTeamId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "{{testTeamId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Team",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"team_name\": \"Spartans Elite CRM Team\",\n  \"department\": \"Core CRM Platforms\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teams/{{testTeamId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "{{testTeamId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Team Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teams/statistics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "statistics"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Team (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teams/{{testTeamId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "{{testTeamId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Team Leaders & Developer Assignment",
+      "item": [
+        {
+          "name": "Create Team Leader Profile Only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"team_id\": \"dddd0000-0000-0000-0000-000000000001\",\n  \"name\": \"Leonidas Spartans 2\",\n  \"email\": \"leonidas2@sparta.com\",\n  \"password\": \"LeaderPass123\",\n  \"employee_id\": \"TL_LEO_301\",\n  \"designation\": \"Team Leader\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/team-leaders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team-leaders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Team Leaders List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/team-leaders?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team-leaders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Team Leader by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/team-leaders/{{testLeaderProfileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team-leaders",
+                "{{testLeaderProfileId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Team Leader Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"designation\": \"Grand General TL\",\n  \"performance_score\": 95\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/team-leaders/{{testLeaderProfileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team-leaders",
+                "{{testLeaderProfileId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Assign Developers to Team Leader",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"developer_ids\": [\"44444444-4444-4444-4444-444444444444\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/team-leaders/{{testLeaderProfileId}}/developers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team-leaders",
+                "{{testLeaderProfileId}}",
+                "developers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Assigned Developers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/team-leaders/{{testLeaderProfileId}}/developers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team-leaders",
+                "{{testLeaderProfileId}}",
+                "developers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Team Performance Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/team-leaders/{{testLeaderProfileId}}/performance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team-leaders",
+                "{{testLeaderProfileId}}",
+                "performance"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Errors & Isolation Edge Cases",
+      "item": [
+        {
+          "name": "Get Team by Invalid UUID format (Should return 400)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teams/not-a-valid-uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "not-a-valid-uuid"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Team Duplicate Email (Should return 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"team_name\": \"Spartans CRM Team 2\",\n  \"branch_id\": \"cccc0000-0000-0000-0000-000000000001\",\n  \"department\": \"CRM Development\",\n  \"leader_name\": \"Leonidas Spartans\",\n  \"leader_email\": \"admin@antigravity.com\",\n  \"leader_password\": \"LeaderPass123\",\n  \"employee_id\": \"TL_LEO_302\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teams",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Team Leader Duplicate Employee ID (Should return 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"team_id\": \"dddd0000-0000-0000-0000-000000000001\",\n  \"name\": \"Leonidas Spartans 3\",\n  \"email\": \"leonidas3@sparta.com\",\n  \"password\": \"LeaderPass123\",\n  \"employee_id\": \"EMP101\",\n  \"designation\": \"Team Leader\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/team-leaders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team-leaders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unauthorized Developer Role accessing stats (Should return 403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{devToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teams/statistics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "statistics"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
