@@ -10,15 +10,22 @@ const createQuotation = async (tenantId, quotationData, items, client) => {
     quotation_date,
     validity_days,
     status,
-    notes
+    notes,
+    customer_name,
+    bill_to,
+    ship_to,
+    payment_terms,
+    priority,
+    shipping_amount,
+    terms
   } = quotationData;
 
   const result = await executor.query(
     `INSERT INTO accounting_quotations 
-      (tenant_id, lead_id, parent_quotation_id, is_latest_revision, quotation_number, quotation_date, validity_days, status, notes)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      (tenant_id, lead_id, parent_quotation_id, is_latest_revision, quotation_number, quotation_date, validity_days, status, notes, customer_name, bill_to, ship_to, payment_terms, priority, shipping_amount, terms)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
      RETURNING *`,
-    [tenantId, lead_id, parent_quotation_id, is_latest_revision, quotation_number, quotation_date, validity_days, status, notes]
+    [tenantId, lead_id, parent_quotation_id, is_latest_revision, quotation_number, quotation_date, validity_days, status, notes, customer_name, bill_to, ship_to, payment_terms, priority, shipping_amount, terms]
   );
   
   const quotation = result.rows[0];
@@ -111,21 +118,15 @@ const updateQuotationStatus = async (tenantId, quotationId, updateData) => {
   const params = [tenantId, quotationId];
   let paramCount = 2;
 
-  if (updateData.status !== undefined) {
-    paramCount++;
-    updates.push(`status = $${paramCount}`);
-    params.push(updateData.status);
-  }
-  if (updateData.validity_days !== undefined) {
-    paramCount++;
-    updates.push(`validity_days = $${paramCount}`);
-    params.push(updateData.validity_days);
-  }
-  if (updateData.notes !== undefined) {
-    paramCount++;
-    updates.push(`notes = $${paramCount}`);
-    params.push(updateData.notes);
-  }
+  const fields = ['status', 'validity_days', 'notes', 'customer_name', 'bill_to', 'ship_to', 'payment_terms', 'priority', 'shipping_amount', 'terms'];
+  
+  fields.forEach(field => {
+    if (updateData[field] !== undefined) {
+      paramCount++;
+      updates.push(`${field} = $${paramCount}`);
+      params.push(updateData[field]);
+    }
+  });
 
   if (updates.length === 0) return await getQuotationById(tenantId, quotationId);
 
@@ -153,10 +154,19 @@ const replaceQuotationItems = async (quotationId, items, client) => {
   }
 };
 
+const deleteQuotation = async (tenantId, quotationId) => {
+  const result = await db.query(
+    `DELETE FROM accounting_quotations WHERE tenant_id = $1 AND id = $2 RETURNING *`,
+    [tenantId, quotationId]
+  );
+  return result.rows[0];
+};
+
 module.exports = {
   createQuotation,
   getQuotationById,
   listQuotations,
   updateQuotationStatus,
-  replaceQuotationItems
+  replaceQuotationItems,
+  deleteQuotation
 };

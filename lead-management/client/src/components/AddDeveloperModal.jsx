@@ -3,8 +3,8 @@ import { X } from 'lucide-react';
 import { Button } from './UI/Button';
 import { developersApi } from '../services/api/developersApi';
 
-export function AddDeveloperModal({ isOpen, onClose, teamLeaderId, teamId, leadId, onSuccess }) {
-  const [formData, setFormData] = useState({
+export function AddDeveloperModal({ isOpen, onClose, teamLeaderId, teamId, leadId, onSuccess, initialData }) {
+  const [formData, setFormData] = useState(initialData || {
     name: '',
     employeeId: '',
     email: '',
@@ -12,6 +12,22 @@ export function AddDeveloperModal({ isOpen, onClose, teamLeaderId, teamId, leadI
     department: 'CRM Development',
     designation: 'Developer'
   });
+
+  // Effect to update formData when initialData changes
+  React.useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    } else {
+      setFormData({
+        name: '',
+        employeeId: '',
+        email: '',
+        phone: '',
+        department: 'CRM Development',
+        designation: 'Developer'
+      });
+    }
+  }, [initialData, isOpen]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -34,10 +50,14 @@ export function AddDeveloperModal({ isOpen, onClose, teamLeaderId, teamId, leadI
     
     setLoading(true);
     try {
-      await developersApi.create({
-        ...formData,
-        teamId: teamId || teamLeaderId
-      });
+      if (initialData) {
+        await developersApi.update(initialData.id, formData);
+      } else {
+        await developersApi.create({
+          ...formData,
+          teamId: teamId || teamLeaderId
+        });
+      }
       
       onSuccess();
       onClose();
@@ -56,7 +76,7 @@ export function AddDeveloperModal({ isOpen, onClose, teamLeaderId, teamId, leadI
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900">Add New Developer</h2>
+          <h2 className="text-xl font-bold text-gray-900">{initialData ? 'Edit Developer' : 'Add New Developer'}</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
             <X className="w-5 h-5" />
           </button>
@@ -108,7 +128,7 @@ export function AddDeveloperModal({ isOpen, onClose, teamLeaderId, teamId, leadI
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Add Developer'}</Button>
+            <Button type="submit" disabled={loading}>{loading ? 'Saving...' : (initialData ? 'Update Developer' : 'Add Developer')}</Button>
           </div>
         </form>
       </div>

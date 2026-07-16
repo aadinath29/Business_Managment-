@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/UI/Card';
 import { Badge } from '../components/UI/Badge';
 import { Button } from '../components/UI/Button';
-import { ArrowLeft, User, CheckCircle, Clock, AlertCircle, Plus } from 'lucide-react';
+import { ArrowLeft, User, CheckCircle, Clock, AlertCircle, Plus, Trash2, Edit2 } from 'lucide-react';
 import { leadsService, teamsService, tasksService } from '../services/mockData';
 import { developersApi } from '../services/api/developersApi';
 import { formatCurrency } from '../utils/currency';
@@ -21,6 +21,7 @@ export function LeadWorkspace() {
   const [loading, setLoading] = useState(true);
   const [showDeveloperModal, setShowDeveloperModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [selectedDeveloper, setSelectedDeveloper] = useState(null);
 
   const fetchWorkspaceData = async () => {
     setLoading(true);
@@ -80,6 +81,25 @@ export function LeadWorkspace() {
       case 'Medium': return <Badge variant="warning">Medium</Badge>;
       case 'Low': return <Badge variant="success">Low</Badge>;
       default: return null;
+    }
+  };
+
+  const handleEditDeveloper = (e, dev) => {
+    e.stopPropagation();
+    setSelectedDeveloper(dev);
+    setShowDeveloperModal(true);
+  };
+
+  const handleDeleteDeveloper = async (e, devId) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this developer?')) {
+      try {
+        await developersApi.delete(devId);
+        fetchWorkspaceData();
+      } catch (err) {
+        console.error('Failed to delete developer:', err);
+        alert(err.response?.data?.message || 'Failed to delete developer');
+      }
     }
   };
 
@@ -158,7 +178,7 @@ export function LeadWorkspace() {
             <Button variant="outline" className="flex items-center justify-center text-xs" onClick={() => setShowTaskModal(true)}>
               <Plus className="w-4 h-4 mr-1.5" /> Add Task
             </Button>
-            <Button className="flex items-center justify-center text-xs" onClick={() => setShowDeveloperModal(true)}>
+            <Button className="flex items-center justify-center text-xs" onClick={() => { setSelectedDeveloper(null); setShowDeveloperModal(true); }}>
               <Plus className="w-4 h-4 mr-1.5" /> Add Developer
             </Button>
           </div>
@@ -174,6 +194,7 @@ export function LeadWorkspace() {
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Workload</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -211,6 +232,14 @@ export function LeadWorkspace() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {dev.status}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button onClick={(e) => handleEditDeveloper(e, dev)} className="text-blue-600 hover:text-blue-900 mr-3">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={(e) => handleDeleteDeveloper(e, dev.id)} className="text-red-600 hover:text-red-900">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -238,7 +267,15 @@ export function LeadWorkspace() {
                       <p className="text-xs text-gray-500 mt-0.5">{dev.role}</p>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-500">{dev.status}</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-500 mr-2">{dev.status}</span>
+                    <button onClick={(e) => handleEditDeveloper(e, dev)} className="text-blue-600 hover:text-blue-900">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={(e) => handleDeleteDeveloper(e, dev.id)} className="text-red-600 hover:text-red-900">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="text-xs text-gray-500 border-t border-gray-100 pt-2 flex justify-between">
                   <div>
@@ -269,11 +306,12 @@ export function LeadWorkspace() {
 
       <AddDeveloperModal 
         isOpen={showDeveloperModal} 
-        onClose={() => setShowDeveloperModal(false)} 
+        onClose={() => { setShowDeveloperModal(false); setSelectedDeveloper(null); }} 
         teamLeaderId={teamLeaderId}
         teamId={leader?.teamId || leader?.id} 
         leadId={leadId} 
-        onSuccess={fetchWorkspaceData} 
+        onSuccess={fetchWorkspaceData}
+        initialData={selectedDeveloper}
       />
 
       <AddTaskModal 

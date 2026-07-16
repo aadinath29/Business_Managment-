@@ -49,8 +49,53 @@ const getInvoiceById = async (tenantId, invoiceId) => {
   return invoice;
 };
 
+const updateInvoice = async (tenantId, invoiceId, updateData) => {
+  const client = await db.getClient();
+  try {
+    await client.query('BEGIN');
+    
+    const invoice = await invoiceRepository.getInvoiceById(tenantId, invoiceId);
+    if (!invoice) {
+      throw new ValidationError('Invoice not found');
+    }
+
+    if (updateData.due_date && new Date(updateData.due_date) < new Date(updateData.invoice_date || invoice.invoice_date)) {
+      throw new ValidationError('Due date cannot be before invoice date');
+    }
+
+    const updateFields = ['invoice_number', 'invoice_date', 'due_date', 'invoice_type', 'place_of_supply', 'currency', 'status'];
+    const hasUpdates = updateFields.some(field => updateData[field] !== undefined);
+    
+    if (hasUpdates) {
+      await invoiceRepository.updateInvoice(tenantId, invoiceId, updateData);
+    }
+    
+    if (updateData.items && updateData.items.length > 0) {
+      await invoiceRepository.replaceInvoiceItems(invoiceId, updateData.items, client);
+    }
+    
+    await client.query('COMMIT');
+    return await getInvoiceById(tenantId, invoiceId);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+const deleteInvoice = async (tenantId, invoiceId) => {
+  const deletedInvoice = await invoiceRepository.deleteInvoice(tenantId, invoiceId);
+  if (!deletedInvoice) {
+    throw new ValidationError('Invoice not found');
+  }
+  return deletedInvoice;
+};
+
 module.exports = {
   createInvoice,
   listInvoices,
-  getInvoiceById
+  getInvoiceById,
+  updateInvoice,
+  deleteInvoice
 };

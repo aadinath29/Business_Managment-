@@ -55,5 +55,20 @@ export const developersApi = {
     };
     const response = await apiClient.post('/developers', payload);
     return mapBackendToFrontend(response.data?.data);
+  },
+
+  update: async (id, data) => {
+    const payload = { ...data };
+    if (data.name) {
+      const nameParts = data.name.trim().split(' ');
+      payload.firstName = nameParts[0] || 'Unknown';
+      payload.lastName = nameParts.slice(1).join(' ') || 'User';
+    }
+    const response = await apiClient.patch(`/developers/${id}`, payload);
+    return mapBackendToFrontend(response.data?.data);
+  },
+
+  delete: async (id) => {
+    await apiClient.delete(`/developers/${id}`);
   }
 };

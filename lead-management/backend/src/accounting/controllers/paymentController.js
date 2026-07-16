@@ -61,8 +61,28 @@ const deletePayment = async (req, res, next) => {
   }
 };
 
+const updatePayment = async (req, res, next) => {
+  try {
+    const { updatePaymentSchema } = require('../validators/paymentValidator');
+    const validatedData = validate(updatePaymentSchema, req.body);
+    const tenantId = req.user.tenant_id;
+    const paymentId = req.params.id;
+    
+    const payment = await paymentService.updatePayment(tenantId, paymentId, validatedData);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Payment updated successfully',
+      data: payment
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   recordPayment,
   listPaymentsForInvoice,
+  updatePayment,
   deletePayment
 };

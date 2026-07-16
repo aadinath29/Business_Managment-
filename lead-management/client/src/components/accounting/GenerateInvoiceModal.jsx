@@ -4,6 +4,7 @@ import { X, Plus, Search, Download } from 'lucide-react';
 import { formatCurrency } from '../../utils/currency';
 import { exportToPDF } from '../../utils/pdfExport';
 import { TaxInvoicePrintTemplate } from './TaxInvoicePrintTemplate';
+import { accountingApi } from '../../services/api/accountingApi';
 
 export function GenerateInvoiceModal({ onClose, onSave, initialData, availableProformas = [] }) {
   const documentRef = useRef(null);
@@ -75,30 +76,35 @@ export function GenerateInvoiceModal({ onClose, onSave, initialData, availablePr
   }, [isEditing, invoiceId]);
 
   // When proforma is fetched, populate fields
-  const handleFetchProforma = () => {
+  const handleFetchProforma = async () => {
     if (!selectedProformaId) return;
 
-    const sourceProforma = availableProformas.find(p => p.proformaId === selectedProformaId);
-    if (sourceProforma) {
-      setSelectedProforma({ 
-        id: sourceProforma.proformaNumber,
-        uuid: sourceProforma.proformaId
-      });
-      setCustomerName(sourceProforma.customerName);
-      if (sourceProforma.items && sourceProforma.items.length > 0) {
-        setServices(sourceProforma.items);
+    try {
+      const sourceProforma = await accountingApi.getProformaById(selectedProformaId);
+      if (sourceProforma) {
+        setSelectedProforma({ 
+          id: sourceProforma.proformaNumber,
+          uuid: sourceProforma.proformaId
+        });
+        setCustomerName(sourceProforma.customerName || '');
+        if (sourceProforma.items && sourceProforma.items.length > 0) {
+          setServices(sourceProforma.items);
+        }
+        if (sourceProforma.totals) {
+          setTotals(sourceProforma.totals);
+        }
+        
+        setBillingAddress(sourceProforma.billTo || sourceProforma.companyAddress || '');
+        setDueDate(sourceProforma.dueDate || '');
+        setNotes(sourceProforma.notes || '');
+        
+        setAdvanceRequired(sourceProforma.advanceRequired || false);
+        setAdvancePercentage(sourceProforma.advancePercentage || 0);
+        setAdvanceAmount(sourceProforma.advanceAmount || 0);
       }
-      if (sourceProforma.totals) {
-        setTotals(sourceProforma.totals);
-      }
-      
-      setBillingAddress(sourceProforma.companyAddress || '');
-      setDueDate(sourceProforma.dueDate || '');
-      setNotes(sourceProforma.notes || '');
-      
-      setAdvanceRequired(sourceProforma.advanceRequired || false);
-      setAdvancePercentage(sourceProforma.advancePercentage || 0);
-      setAdvanceAmount(sourceProforma.advanceAmount || 0);
+    } catch (error) {
+      console.error("Failed to fetch full proforma details", error);
+      alert("Failed to fetch proforma details.");
     }
   };
 

@@ -114,9 +114,61 @@ const updateProformaStatus = async (tenantId, proformaId, status) => {
   return result.rows[0];
 };
 
+const updateProforma = async (tenantId, proformaId, updateData) => {
+  const updates = [];
+  const params = [tenantId, proformaId];
+  let paramCount = 2;
+
+  const fields = ['proforma_number', 'proforma_date', 'due_date', 'status', 'notes'];
+  
+  fields.forEach(field => {
+    if (updateData[field] !== undefined) {
+      paramCount++;
+      updates.push(`${field} = $${paramCount}`);
+      params.push(updateData[field]);
+    }
+  });
+
+  if (updates.length === 0) return await getProformaById(tenantId, proformaId);
+
+  const query = `
+    UPDATE accounting_proformas 
+    SET ${updates.join(', ')} 
+    WHERE tenant_id = $1 AND id = $2 
+    RETURNING *`;
+    
+  const result = await db.query(query, params);
+  return result.rows[0];
+};
+
+const replaceProformaItems = async (proformaId, items, client) => {
+  const executor = client || db;
+  await executor.query(`DELETE FROM proforma_items WHERE proforma_id = $1`, [proformaId]);
+  
+  for (const item of items) {
+    await executor.query(
+      `INSERT INTO proforma_items 
+        (proforma_id, service_name, description, hsn_sac, quantity, unit, rate, discount_percentage, tax_percentage)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [proformaId, item.service_name, item.description, item.hsn_sac, item.quantity, item.unit, item.rate, item.discount_percentage, item.tax_percentage]
+    );
+  }
+};
+
+const deleteProforma = async (tenantId, proformaId) => {
+  const result = await db.query(
+    `DELETE FROM accounting_proformas WHERE tenant_id = $1 AND id = $2 RETURNING *`,
+    [tenantId, proformaId]
+  );
+  return result.rows[0];
+};
+
 module.exports = {
   createProforma,
   getProformaById,
   listProformas,
-  updateProformaStatus
+  updateProformaStatus,
+  updateProforma,
+  replaceProformaItems,
+  deleteProforma
 };

@@ -37,8 +37,17 @@ const deletePayment = async (tenantId, paymentId) => {
   return deletedPayment;
 };
 
+const updatePayment = async (tenantId, paymentId, data) => {
+  const updatedPayment = await paymentRepository.updatePayment(tenantId, paymentId, data);
+  if (!updatedPayment) {
+    throw new ValidationError('Payment not found or no changes made');
+  }
+  return updatedPayment;
+};
+
 module.exports = {
   recordPayment,
   getPaymentsByInvoiceId,
+  updatePayment,
   deletePayment
 };

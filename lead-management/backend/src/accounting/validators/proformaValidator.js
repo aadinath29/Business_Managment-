@@ -35,8 +35,18 @@ const listProformasQuerySchema = z.object({
   status: proformaStatusEnum.optional(),
 });
 
+const updateProformaSchema = z.object({
+  proforma_number: z.string().trim().min(1, 'Proforma number is required').optional(),
+  proforma_date: z.string().refine(val => !isNaN(new Date(val).getTime()), 'Invalid date format').optional(),
+  due_date: z.string().refine(val => !isNaN(new Date(val).getTime()), 'Invalid date format').optional().nullable(),
+  status: proformaStatusEnum.optional(),
+  notes: z.string().trim().optional().nullable(),
+  items: z.array(proformaItemSchema).min(1, 'At least one item is required').optional()
+}).strict('Unknown fields are not allowed');
+
 module.exports = {
   createProformaSchema,
   updateProformaStatusSchema,
+  updateProformaSchema,
   listProformasQuerySchema
 };

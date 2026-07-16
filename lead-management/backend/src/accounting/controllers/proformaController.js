@@ -1,5 +1,5 @@
 const proformaService = require('../services/proformaService');
-const { createProformaSchema, updateProformaStatusSchema, listProformasQuerySchema } = require('../validators/proformaValidator');
+const { createProformaSchema, updateProformaStatusSchema, listProformasQuerySchema, updateProformaSchema } = require('../validators/proformaValidator');
 const { ValidationError } = require('../../auth/errors/authErrors');
 
 const validate = (schema, data) => {
@@ -83,9 +83,45 @@ const updateProformaStatus = async (req, res, next) => {
   }
 };
 
+const updateProforma = async (req, res, next) => {
+  try {
+    const validatedData = validate(updateProformaSchema, req.body);
+    const tenantId = req.user.tenant_id;
+    const proformaId = req.params.id;
+    
+    const proforma = await proformaService.updateProforma(tenantId, proformaId, validatedData);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Proforma updated successfully',
+      data: proforma
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteProforma = async (req, res, next) => {
+  try {
+    const tenantId = req.user.tenant_id;
+    const proformaId = req.params.id;
+    
+    await proformaService.deleteProforma(tenantId, proformaId);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Proforma deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createProforma,
   listProformas,
   getProformaById,
-  updateProformaStatus
+  updateProformaStatus,
+  updateProforma,
+  deleteProforma
 };

@@ -4,6 +4,7 @@ import { X, Plus, Search, Download } from 'lucide-react';
 import { formatCurrency } from '../../utils/currency';
 import { exportToPDF } from '../../utils/pdfExport';
 import { ProformaInvoicePrintTemplate } from './ProformaInvoicePrintTemplate';
+import { accountingApi } from '../../services/api/accountingApi';
 
 export function GenerateProformaModal({ onClose, onSave, initialData, availableQuotations = [], existingProformas = [] }) {
   const documentRef = useRef(null);
@@ -72,25 +73,34 @@ export function GenerateProformaModal({ onClose, onSave, initialData, availableQ
   }, [isEditing, proformaId]);
 
   // When quotation is fetched, populate fields
-  const handleFetchQuotation = () => {
+  const handleFetchQuotation = async () => {
     if (!selectedQuotationId) return;
 
-    const sourceQuotation = approvedQuotations.find(q => q.quotationId === selectedQuotationId);
-    if (sourceQuotation) {
-      setSelectedQuotation({
-        id: sourceQuotation.quotationNumber,
-        uuid: sourceQuotation.quotationId
-      });
-      setCustomerName(sourceQuotation.customerName);
-      if (sourceQuotation.items && sourceQuotation.items.length > 0) {
-        setServices(sourceQuotation.items);
+    try {
+      const sourceQuotation = await accountingApi.getQuotationById(selectedQuotationId);
+      if (sourceQuotation) {
+        setSelectedQuotation({
+          id: sourceQuotation.quotationNumber,
+          uuid: sourceQuotation.quotationId
+        });
+        setCustomerName(sourceQuotation.customerName || '');
+        setBillTo(sourceQuotation.billTo || '');
+        setShipTo(sourceQuotation.shipTo || '');
+        setPaymentTerms(sourceQuotation.paymentTerms || 'Due on Receipt');
+        
+        if (sourceQuotation.items && sourceQuotation.items.length > 0) {
+          setServices(sourceQuotation.items);
+        }
+        if (sourceQuotation.totals) {
+          setTotals(sourceQuotation.totals);
+        }
+        if (sourceQuotation.notes || sourceQuotation.terms) {
+          setRemarks(`${sourceQuotation.notes || ''}\n${sourceQuotation.terms || ''}`.trim());
+        }
       }
-      if (sourceQuotation.totals) {
-        setTotals(sourceQuotation.totals);
-      }
-      if (sourceQuotation.notes || sourceQuotation.terms) {
-        setRemarks(`${sourceQuotation.notes || ''}\n${sourceQuotation.terms || ''}`.trim());
-      }
+    } catch (error) {
+      console.error("Failed to fetch full quotation details", error);
+      alert("Failed to fetch quotation details.");
     }
   };
 

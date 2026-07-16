@@ -115,8 +115,60 @@ const listInvoices = async (tenantId, filters, page, limit) => {
   };
 };
 
+const replaceInvoiceItems = async (invoiceId, items, client) => {
+  const executor = client || db;
+  await executor.query(`DELETE FROM invoice_items WHERE invoice_id = $1`, [invoiceId]);
+  
+  for (const item of items) {
+    await executor.query(
+      `INSERT INTO invoice_items 
+        (invoice_id, service_name, description, hsn_sac, quantity, unit, rate, discount_percentage, tax_percentage)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [invoiceId, item.service_name, item.description, item.hsn_sac, item.quantity, item.unit, item.rate, item.discount_percentage, item.tax_percentage]
+    );
+  }
+};
+
+const updateInvoice = async (tenantId, invoiceId, updateData) => {
+  const updates = [];
+  const params = [tenantId, invoiceId];
+  let paramCount = 2;
+
+  const fields = ['invoice_number', 'invoice_date', 'due_date', 'invoice_type', 'place_of_supply', 'currency', 'status'];
+  
+  fields.forEach(field => {
+    if (updateData[field] !== undefined) {
+      paramCount++;
+      updates.push(`${field} = $${paramCount}`);
+      params.push(updateData[field]);
+    }
+  });
+
+  if (updates.length === 0) return await getInvoiceById(tenantId, invoiceId);
+
+  const query = `
+    UPDATE accounting_invoices 
+    SET ${updates.join(', ')} 
+    WHERE tenant_id = $1 AND id = $2 
+    RETURNING *`;
+    
+  const result = await db.query(query, params);
+  return result.rows[0];
+};
+
+const deleteInvoice = async (tenantId, invoiceId) => {
+  const result = await db.query(
+    `DELETE FROM accounting_invoices WHERE tenant_id = $1 AND id = $2 RETURNING *`,
+    [tenantId, invoiceId]
+  );
+  return result.rows[0];
+};
+
 module.exports = {
   createInvoice,
   getInvoiceById,
-  listInvoices
+  listInvoices,
+  replaceInvoiceItems,
+  updateInvoice,
+  deleteInvoice
 };

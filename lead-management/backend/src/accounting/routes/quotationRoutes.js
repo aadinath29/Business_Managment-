@@ -7,5 +7,6 @@ router.get('/', quotationController.listQuotations);
 router.get('/:id', quotationController.getQuotationById);
 router.put('/:id', quotationController.updateQuotation);
 router.post('/:id/revise', quotationController.reviseQuotation);
+router.delete('/:id', quotationController.deleteQuotation);
 
 module.exports = router;

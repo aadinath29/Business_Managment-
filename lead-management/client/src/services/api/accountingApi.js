@@ -59,6 +59,12 @@ const mapQuotationToFrontend = (q) => {
     // Data
     quotationDate: q.quotation_date ? new Date(q.quotation_date).toISOString().split('T')[0] : '',
     customerName: q.customer_name || '',
+    billTo: q.bill_to || '',
+    shipTo: q.ship_to || '',
+    paymentTerms: q.payment_terms || 'Due on Receipt',
+    priority: q.priority || 'Normal',
+    shippingAmount: parseFloat(q.shipping_amount) || 0,
+    terms: q.terms || '',
     negotiationStatus: mapBackendStatusToFrontendNegotiation(q.status),
     totalAmount: grandTotal,
     validity: q.validity_days ? `${q.validity_days} Days` : '30 Days',
@@ -218,6 +224,13 @@ export const accountingApi = {
       validity_days: parseInt(frontendData.validity) || 30,
       status: mapFrontendNegotiationToBackendStatus(frontendData.negotiationStatus),
       notes: frontendData.notes || null,
+      customer_name: frontendData.customerName || null,
+      bill_to: frontendData.billTo || null,
+      ship_to: frontendData.shipTo || null,
+      payment_terms: frontendData.paymentTerms || null,
+      priority: frontendData.priority || null,
+      shipping_amount: parseFloat(frontendData.shippingAmount) || 0,
+      terms: frontendData.terms || null,
       items: processItemsForBackend(frontendData.items),
     };
     const response = await apiClient.post('/accounting/quotations', payload);
@@ -231,6 +244,13 @@ export const accountingApi = {
         ? mapFrontendNegotiationToBackendStatus(frontendData.negotiationStatus)
         : undefined,
       notes: frontendData.notes !== undefined ? frontendData.notes : undefined,
+      customer_name: frontendData.customerName !== undefined ? frontendData.customerName : undefined,
+      bill_to: frontendData.billTo !== undefined ? frontendData.billTo : undefined,
+      ship_to: frontendData.shipTo !== undefined ? frontendData.shipTo : undefined,
+      payment_terms: frontendData.paymentTerms !== undefined ? frontendData.paymentTerms : undefined,
+      priority: frontendData.priority !== undefined ? frontendData.priority : undefined,
+      shipping_amount: frontendData.shippingAmount !== undefined ? parseFloat(frontendData.shippingAmount) : undefined,
+      terms: frontendData.terms !== undefined ? frontendData.terms : undefined,
       items: frontendData.items ? processItemsForBackend(frontendData.items) : undefined,
     };
     // Remove undefined keys
@@ -252,6 +272,13 @@ export const accountingApi = {
     const payload = {
       quotation_number: frontendData.quotationNumber,
       quotation_date: frontendData.quotationDate || new Date().toISOString().split('T')[0],
+      customer_name: frontendData.customerName,
+      bill_to: frontendData.billTo,
+      ship_to: frontendData.shipTo,
+      payment_terms: frontendData.paymentTerms,
+      priority: frontendData.priority,
+      shipping_amount: frontendData.shippingAmount !== undefined ? parseFloat(frontendData.shippingAmount) : undefined,
+      terms: frontendData.terms,
       items: frontendData.items ? processItemsForBackend(frontendData.items) : undefined,
     };
     Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
@@ -260,11 +287,20 @@ export const accountingApi = {
     return mapQuotationToFrontend(response.data?.data);
   },
 
+  deleteQuotation: async (quotationId) => {
+    await apiClient.delete(`/accounting/quotations/${quotationId}`);
+  },
+
   // --- Proformas ---
 
   getProformasByLead: async (leadId) => {
     const response = await apiClient.get('/accounting/proformas', { params: { lead_id: leadId, limit: 100 } });
     return (response.data?.data || []).map(mapProformaToFrontend);
+  },
+
+  getProformaById: async (proformaId) => {
+    const response = await apiClient.get(`/accounting/proformas/${proformaId}`);
+    return mapProformaToFrontend(response.data?.data);
   },
 
   createProforma: async (leadId, frontendData) => {
@@ -287,6 +323,32 @@ export const accountingApi = {
     return mapProformaToFrontend(response.data?.data);
   },
 
+  updateProforma: async (proformaId, frontendData) => {
+    const payload = {
+      proforma_number: frontendData.proformaNumber,
+      proforma_date: frontendData.proformaDate,
+      due_date: frontendData.dueDate,
+      status: frontendData.status,
+      notes: frontendData.notes,
+      items: frontendData.items.map(item => ({
+        service_name: item.serviceName,
+        description: item.description,
+        hsn_sac: item.hsnSac,
+        quantity: parseFloat(item.qty),
+        unit: item.unit,
+        rate: parseFloat(item.rate),
+        discount_percentage: parseFloat(item.discount),
+        tax_percentage: parseFloat(item.tax)
+      }))
+    };
+    const response = await apiClient.put(`/accounting/proformas/${proformaId}`, payload);
+    return mapProformaToFrontend(response.data?.data);
+  },
+
+  deleteProforma: async (proformaId) => {
+    await apiClient.delete(`/accounting/proformas/${proformaId}`);
+  },
+
   // --- Invoices ---
 
   getInvoicesByLead: async (leadId) => {
@@ -299,20 +361,60 @@ export const accountingApi = {
     return mapInvoiceToFrontend(response.data?.data);
   },
 
-  createInvoice: async (leadId, frontendData) => {
+  createInvoice: async (frontendData) => {
     const payload = {
-      lead_id: leadId,
-      proforma_id: frontendData.proformaId || null,
-      invoice_number: frontendData.invoiceNumber || frontendData.invoiceId,
-      invoice_date: frontendData.invoiceDate || new Date().toISOString().split('T')[0],
-      due_date: frontendData.dueDate || null,
-      invoice_type: frontendData.invoiceType || 'GST Invoice',
-      place_of_supply: frontendData.placeOfSupply || null,
-      currency: (frontendData.currency || 'INR').replace(/\s*\(.*\)/, ''), // strip "(₹)" part
-      items: processItemsForBackend(frontendData.items),
+      lead_id: frontendData.leadId,
+      proforma_id: frontendData.proformaId,
+      invoice_number: frontendData.invoiceNumber,
+      invoice_date: frontendData.invoiceDate,
+      due_date: frontendData.dueDate,
+      invoice_type: frontendData.invoiceType,
+      place_of_supply: frontendData.placeOfSupply,
+      currency: frontendData.currency,
+      status: frontendData.status,
+      items: frontendData.items.map(item => ({
+        service_name: item.serviceName,
+        description: item.description,
+        hsn_sac: item.hsnSac,
+        quantity: parseFloat(item.qty),
+        unit: item.unit,
+        rate: parseFloat(item.rate),
+        discount_percentage: parseFloat(item.discount),
+        tax_percentage: parseFloat(item.tax)
+      }))
     };
+
     const response = await apiClient.post('/accounting/invoices', payload);
     return mapInvoiceToFrontend(response.data?.data);
+  },
+
+  updateInvoice: async (invoiceId, frontendData) => {
+    const payload = {
+      invoice_number: frontendData.invoiceNumber,
+      invoice_date: frontendData.invoiceDate,
+      due_date: frontendData.dueDate,
+      invoice_type: frontendData.invoiceType,
+      place_of_supply: frontendData.placeOfSupply,
+      currency: frontendData.currency,
+      status: frontendData.status,
+      items: frontendData.items.map(item => ({
+        service_name: item.serviceName,
+        description: item.description,
+        hsn_sac: item.hsnSac,
+        quantity: parseFloat(item.qty),
+        unit: item.unit,
+        rate: parseFloat(item.rate),
+        discount_percentage: parseFloat(item.discount),
+        tax_percentage: parseFloat(item.tax)
+      }))
+    };
+
+    const response = await apiClient.put(`/accounting/invoices/${invoiceId}`, payload);
+    return mapInvoiceToFrontend(response.data?.data);
+  },
+
+  deleteInvoice: async (invoiceId) => {
+    await apiClient.delete(`/accounting/invoices/${invoiceId}`);
   },
 
   // --- Payments ---
@@ -338,6 +440,20 @@ export const accountingApi = {
 
   deletePayment: async (paymentId) => {
     await apiClient.delete(`/accounting/payments/${paymentId}`);
+  },
+
+  updatePayment: async (paymentId, frontendData) => {
+    const payload = {};
+    if (frontendData.paymentDate) payload.payment_date = frontendData.paymentDate;
+    if (frontendData.paymentMode) payload.payment_mode = mapPaymentMode(frontendData.paymentMode);
+    if (frontendData.transactionNumber !== undefined) payload.transaction_number = frontendData.transactionNumber;
+    if (frontendData.amountPaid !== undefined) payload.amount_received = parseFloat(frontendData.amountPaid);
+    if (frontendData.bankName !== undefined) payload.bank_name = frontendData.bankName;
+    if (frontendData.receivedBy !== undefined) payload.received_by = frontendData.receivedBy;
+    if (frontendData.notes !== undefined) payload.notes = frontendData.notes;
+
+    const response = await apiClient.put(`/accounting/payments/${paymentId}`, payload);
+    return mapPaymentToFrontend(response.data?.data);
   },
 };
 

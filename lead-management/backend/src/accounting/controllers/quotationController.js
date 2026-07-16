@@ -112,10 +112,27 @@ const reviseQuotation = async (req, res, next) => {
   }
 };
 
+const deleteQuotation = async (req, res, next) => {
+  try {
+    const tenantId = req.user.tenant_id;
+    const quotationId = req.params.id;
+    
+    await quotationService.deleteQuotation(tenantId, quotationId);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Quotation deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createQuotation,
   listQuotations,
   getQuotationById,
   updateQuotation,
-  reviseQuotation
+  reviseQuotation,
+  deleteQuotation
 };

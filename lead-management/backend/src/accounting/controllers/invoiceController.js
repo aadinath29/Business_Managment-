@@ -1,5 +1,5 @@
 const invoiceService = require('../services/invoiceService');
-const { createInvoiceSchema, listInvoicesQuerySchema } = require('../validators/invoiceValidator');
+const { createInvoiceSchema, listInvoicesQuerySchema, updateInvoiceSchema } = require('../validators/invoiceValidator');
 const { ValidationError } = require('../../auth/errors/authErrors');
 
 const validate = (schema, data) => {
@@ -64,8 +64,44 @@ const getInvoiceById = async (req, res, next) => {
   }
 };
 
+const updateInvoice = async (req, res, next) => {
+  try {
+    const validatedData = validate(updateInvoiceSchema, req.body);
+    const tenantId = req.user.tenant_id;
+    const invoiceId = req.params.id;
+    
+    const invoice = await invoiceService.updateInvoice(tenantId, invoiceId, validatedData);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Invoice updated successfully',
+      data: invoice
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteInvoice = async (req, res, next) => {
+  try {
+    const tenantId = req.user.tenant_id;
+    const invoiceId = req.params.id;
+    
+    await invoiceService.deleteInvoice(tenantId, invoiceId);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Invoice deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createInvoice,
   listInvoices,
-  getInvoiceById
+  getInvoiceById,
+  updateInvoice,
+  deleteInvoice
 };

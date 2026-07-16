@@ -35,7 +35,19 @@ const listInvoicesQuerySchema = z.object({
   invoice_type: invoiceTypeEnum.optional(),
 });
 
+const updateInvoiceSchema = z.object({
+  invoice_number: z.string().trim().min(1, 'Invoice number is required').optional(),
+  invoice_date: z.string().refine(val => !isNaN(new Date(val).getTime()), 'Invalid date format').optional(),
+  due_date: z.string().refine(val => !isNaN(new Date(val).getTime()), 'Invalid date format').optional().nullable(),
+  invoice_type: invoiceTypeEnum.optional(),
+  place_of_supply: z.string().trim().optional().nullable(),
+  currency: z.string().trim().optional(),
+  status: invoiceStatusEnum.optional(),
+  items: z.array(invoiceItemSchema).min(1, 'At least one item is required').optional()
+}).strict('Unknown fields are not allowed');
+
 module.exports = {
   createInvoiceSchema,
-  listInvoicesQuerySchema
+  listInvoicesQuerySchema,
+  updateInvoiceSchema
 };

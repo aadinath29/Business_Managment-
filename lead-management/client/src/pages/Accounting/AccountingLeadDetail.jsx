@@ -39,7 +39,7 @@ export function AccountingLeadDetail() {
   const [inlineProformaStatusValue, setInlineProformaStatusValue] = useState('');
 
   const [inlinePaymentEditId, setInlinePaymentEditId] = useState(null);
-  const [inlineTxnValue, setInlineTxnValue] = useState('');
+  const [inlinePaymentData, setInlinePaymentData] = useState({});
 
   const [editingInvoiceData, setEditingInvoiceData] = useState(null);
   const [editingProformaData, setEditingProformaData] = useState(null);
@@ -193,43 +193,56 @@ export function AccountingLeadDetail() {
     setIsQuotationModalOpen(true);
   };
 
-  const handleEditQuotation = (quotation) => {
-    setEditingQuotationData(quotation);
-    setIsCreatingRevision(false);
-    setViewOnlyModal(!quotation.isLatestRevision);
-    setIsQuotationModalOpen(true);
+  const handleEditQuotation = async (quotation) => {
+    try {
+      const fullQuotation = await accountingApi.getQuotationById(quotation.quotationId);
+      setEditingQuotationData(fullQuotation);
+      setIsCreatingRevision(false);
+      setViewOnlyModal(!quotation.isLatestRevision);
+      setIsQuotationModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to load quotation details', 'error');
+    }
   };
 
-  const handleCreateRevision = (quotation) => {
-    const parentId = quotation.isParent ? quotation.quotationId : quotation.parentQuotationId;
-    const allRevisions = quotations.filter(q => (q.isParent ? q.quotationId : q.parentQuotationId) === parentId);
-    
-    const maxRevNumber = Math.max(0, ...allRevisions.map(q => q.revisionNumber || 0));
-    const nextRevNumber = maxRevNumber + 1;
-    
-    const parentQuotation = allRevisions.find(q => q.isParent) || quotation;
-    const baseNumber = parentQuotation.quotationNumber;
-    const newQuotationId = `${baseNumber}-R${nextRevNumber}`;
-    
-    const newRevisionData = {
-      ...quotation,
-      quotationId: newQuotationId,
-      quotationNumber: newQuotationId,
-      parentQuotationId: parentId,
-      revisionNumber: nextRevNumber,
-      revisionLabel: `Rev ${nextRevNumber}`,
-      isParent: false,
-      isLatestRevision: true,
-      createdFromRevisionId: quotation.quotationId
-    };
-    
-    setEditingQuotationData(newRevisionData);
-    setIsCreatingRevision(true);
-    setViewOnlyModal(false);
-    setIsQuotationModalOpen(true);
-    
-    // Automatically expand parent so they see the new revision
-    setExpandedQuotations(prev => ({ ...prev, [parentId]: true }));
+  const handleCreateRevision = async (quotation) => {
+    try {
+      const fullQuotation = await accountingApi.getQuotationById(quotation.quotationId);
+      
+      const parentId = quotation.isParent ? quotation.quotationId : quotation.parentQuotationId;
+      const allRevisions = quotations.filter(q => (q.isParent ? q.quotationId : q.parentQuotationId) === parentId);
+      
+      const maxRevNumber = Math.max(0, ...allRevisions.map(q => q.revisionNumber || 0));
+      const nextRevNumber = maxRevNumber + 1;
+      
+      const parentQuotation = allRevisions.find(q => q.isParent) || quotation;
+      const baseNumber = parentQuotation.quotationNumber;
+      const newQuotationId = `${baseNumber}-R${nextRevNumber}`;
+      
+      const newRevisionData = {
+        ...fullQuotation,
+        quotationId: newQuotationId,
+        quotationNumber: newQuotationId,
+        parentQuotationId: parentId,
+        revisionNumber: nextRevNumber,
+        revisionLabel: `Rev ${nextRevNumber}`,
+        isParent: false,
+        isLatestRevision: true,
+        createdFromRevisionId: quotation.quotationId
+      };
+      
+      setEditingQuotationData(newRevisionData);
+      setIsCreatingRevision(true);
+      setViewOnlyModal(false);
+      setIsQuotationModalOpen(true);
+      
+      // Automatically expand parent so they see the new revision
+      setExpandedQuotations(prev => ({ ...prev, [parentId]: true }));
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to load quotation details for revision', 'error');
+    }
   };
 
   const handleSaveQuotation = async (savedData) => {
@@ -258,28 +271,18 @@ export function AccountingLeadDetail() {
     }
   };
 
-  const handleDeleteQuotation = (quotation) => {
+  const handleDeleteQuotation = async (quotation) => {
     if (!quotation.isLatestRevision) return; // safety
     
     if (window.confirm('Are you sure you want to delete this quotation? This action cannot be undone.')) {
-      setQuotations(prev => {
-        // Remove the target
-        const nextList = prev.filter(q => q.quotationId !== quotation.quotationId);
-        // If it was a revision, we might need to restore isLatestRevision to the previous one
-        if (!quotation.isParent) {
-          const siblings = nextList.filter(q => q.parentQuotationId === quotation.parentQuotationId);
-          if (siblings.length > 0) {
-            const maxRev = Math.max(...siblings.map(s => s.revisionNumber));
-            return nextList.map(q => 
-              (q.parentQuotationId === quotation.parentQuotationId && q.revisionNumber === maxRev) 
-                ? { ...q, isLatestRevision: true } 
-                : q
-            );
-          }
-        }
-        return nextList;
-      });
-      showToast('Quotation deleted successfully!');
+      try {
+        await accountingApi.deleteQuotation(quotation.quotationId);
+        showToast('Quotation deleted successfully!');
+        await fetchAllData();
+      } catch (error) {
+        console.error('Failed to delete quotation:', error);
+        showToast(error.response?.data?.message || 'Failed to delete quotation', 'error');
+      }
     }
   };
 
@@ -318,56 +321,33 @@ export function AccountingLeadDetail() {
     setIsInvoiceModalOpen(true);
   };
 
-  const handleSaveInvoice = async (savedData) => {
+  const handleSaveInvoice = async (invoiceData) => {
     try {
       if (editingInvoiceData) {
-        // For editing, just update local state (backend doesn't support PUT on invoices once created)
-        setInvoices(prev => prev.map(i => i.invoiceId === savedData.invoiceId ? savedData : i));
-        
-        // Update existing payment ledger entry if present
-        setPayments(prev => prev.map(p => p.invoiceId === savedData.invoiceId ? {
-          ...p,
-          paymentDate: savedData.paymentDate || new Date().toISOString().split('T')[0],
-          transactionNumber: savedData.transactionNumber || p.transactionNumber,
-          paymentMode: savedData.paymentMode || p.paymentMode,
-          amountPaid: savedData.amountPaid || p.amountPaid,
-        } : p));
-        
-        showToast(`Invoice ${savedData.invoiceNumber} updated successfully!`);
+        await accountingApi.updateInvoice(editingInvoiceData.invoiceId, invoiceData);
+        showToast('Invoice updated successfully!');
       } else {
-        // Create new invoice via backend
-        const created = await accountingApi.createInvoice(id, savedData);
-
-        // If payment data was included in the invoice form, record it
-        if (savedData.amountPaid && parseFloat(savedData.amountPaid) > 0) {
-          try {
-            await accountingApi.recordPayment(created.invoiceId, {
-              paymentDate: savedData.paymentDate || new Date().toISOString().split('T')[0],
-              paymentMode: savedData.paymentMode || 'Bank Transfer',
-              transactionNumber: savedData.transactionNumber || '',
-              amountPaid: parseFloat(savedData.amountPaid),
-              bankName: savedData.bankName || '',
-              receivedBy: savedData.receivedBy || '',
-            });
-          } catch (payErr) {
-            console.error('Payment recording failed:', payErr);
-          }
-        }
-        
-        showToast(`Invoice ${savedData.invoiceNumber} created successfully!`);
-        // Re-fetch all data to get accurate balances from DB triggers
-        await fetchAllData();
+        await accountingApi.createInvoice(invoiceData);
+        showToast('Invoice generated successfully!');
       }
+      setIsInvoiceModalOpen(false);
+      await fetchAllData();
     } catch (error) {
       console.error('Failed to save invoice:', error);
       showToast(error.response?.data?.message || 'Failed to save invoice', 'error');
     }
   };
 
-  const handleDeleteInvoice = (invoiceId) => {
+  const handleDeleteInvoice = async (invoiceId) => {
     if (window.confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
-      setInvoices(prev => prev.filter(i => i.invoiceId !== invoiceId));
-      showToast('Invoice deleted successfully!');
+      try {
+        await accountingApi.deleteInvoice(invoiceId);
+        showToast('Invoice deleted successfully!');
+        await fetchAllData();
+      } catch (error) {
+        console.error('Failed to delete invoice:', error);
+        showToast(error.response?.data?.message || 'Failed to delete invoice', 'error');
+      }
     }
   };
 
@@ -403,19 +383,41 @@ export function AccountingLeadDetail() {
 
   const handleInlinePaymentEditStart = (payment) => {
     setInlinePaymentEditId(payment.id);
-    setInlineTxnValue(payment.transactionNumber);
+    setInlinePaymentData({
+      paymentDate: payment.paymentDate,
+      transactionNumber: payment.transactionNumber || '',
+      paymentMode: payment.paymentMode,
+      amountPaid: payment.amountPaid
+    });
   };
 
-  const handleInlinePaymentEditSave = (paymentId) => {
-    setPayments(prev => prev.map(p => 
-      p.id === paymentId ? { ...p, transactionNumber: inlineTxnValue } : p
-    ));
-    setInlinePaymentEditId(null);
-    showToast('Transaction ID updated successfully!');
+  const handleInlinePaymentEditSave = async (paymentId) => {
+    try {
+      await accountingApi.updatePayment(paymentId, inlinePaymentData);
+      showToast('Payment updated successfully!');
+      setInlinePaymentEditId(null);
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to update payment:', error);
+      showToast(error.response?.data?.message || 'Failed to update payment', 'error');
+    }
   };
 
   const handleInlinePaymentEditCancel = () => {
     setInlinePaymentEditId(null);
+  };
+
+  const handleDeletePayment = async (paymentId) => {
+    if (window.confirm('Are you sure you want to delete this payment? This action cannot be undone.')) {
+      try {
+        await accountingApi.deletePayment(paymentId);
+        showToast('Payment deleted successfully!');
+        await fetchAllData();
+      } catch (error) {
+        console.error('Failed to delete payment:', error);
+        showToast(error.response?.data?.message || 'Failed to delete payment', 'error');
+      }
+    }
   };
 
   const handleEditProforma = (proforma) => {
@@ -423,28 +425,33 @@ export function AccountingLeadDetail() {
     setIsProformaModalOpen(true);
   };
 
-  const handleSaveProforma = async (savedData) => {
+  const handleSaveProforma = async (proformaData) => {
     try {
       if (editingProformaData) {
-        // Local update for editing (backend only supports status update)
-        setProformas(prev => prev.map(p => p.proformaId === savedData.proformaId ? savedData : p));
-        showToast(`Proforma Invoice ${savedData.proformaNumber} updated successfully!`);
+        await accountingApi.updateProforma(editingProformaData.proformaId, proformaData);
+        showToast('Proforma updated successfully!');
       } else {
-        // Create new proforma via backend
-        await accountingApi.createProforma(id, savedData);
-        showToast(`Proforma Invoice ${savedData.proformaNumber} created successfully!`);
-        await fetchAllData();
+        await accountingApi.createProforma({ ...proformaData, leadId: lead.id });
+        showToast('Proforma generated successfully!');
       }
+      setIsProformaModalOpen(false);
+      await fetchAllData();
     } catch (error) {
       console.error('Failed to save proforma:', error);
       showToast(error.response?.data?.message || 'Failed to save proforma', 'error');
     }
   };
 
-  const handleDeleteProforma = (proformaId) => {
+  const handleDeleteProforma = async (proformaId) => {
     if (window.confirm('Are you sure you want to delete this Proforma Invoice? This action cannot be undone.')) {
-      setProformas(prev => prev.filter(p => p.proformaId !== proformaId));
-      showToast('Proforma Invoice deleted successfully!');
+      try {
+        await accountingApi.deleteProforma(proformaId);
+        showToast('Proforma Invoice deleted successfully!');
+        await fetchAllData();
+      } catch (error) {
+        console.error('Failed to delete proforma:', error);
+        showToast(error.response?.data?.message || 'Failed to delete proforma', 'error');
+      }
     }
   };
 
@@ -995,6 +1002,7 @@ export function AccountingLeadDetail() {
                         <th className="px-6 py-5 text-left text-xs font-bold text-slate-600 w-1/5">Mode</th>
                         <th className="px-6 py-5 text-center text-xs font-bold text-slate-600 w-32">Document</th>
                         <th className="px-6 py-5 text-right text-xs font-bold text-slate-600 w-1/5">Amount Received</th>
+                        <th className="px-6 py-5 text-right text-xs font-bold text-slate-600 w-24">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-50">
@@ -1007,43 +1015,72 @@ export function AccountingLeadDetail() {
                       ) : (
                         payments.map((payment) => (
                           <tr key={payment.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-6 py-5 whitespace-nowrap text-xs text-slate-600 font-medium">{payment.paymentDate}</td>
-                            <td 
-                              className="px-6 py-5 whitespace-nowrap text-xs text-slate-600 cursor-pointer"
-                              onDoubleClick={() => handleInlinePaymentEditStart(payment)}
-                              title="Double-click to edit Transaction ID"
-                            >
-                              {inlinePaymentEditId === payment.id ? (
-                                <input
-                                  autoFocus
-                                  type="text"
-                                  value={inlineTxnValue}
-                                  onChange={(e) => setInlineTxnValue(e.target.value)}
-                                  className="text-xs font-medium border border-slate-300 rounded px-2 py-1 outline-none focus:border-blue-500 bg-white shadow-sm w-32"
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleInlinePaymentEditSave(payment.id);
-                                    if (e.key === 'Escape') handleInlinePaymentEditCancel();
-                                  }}
-                                  onBlur={() => handleInlinePaymentEditSave(payment.id)}
-                                />
-                              ) : (
-                                payment.transactionNumber || '-'
-                              )}
-                            </td>
-                            <td className="px-6 py-5 whitespace-nowrap text-xs text-slate-600">{payment.paymentMode}</td>
-                            <td className="px-6 py-5 whitespace-nowrap text-center">
-                              {payment.document ? (
-                                <a href={payment.document} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-medium flex items-center justify-center">
-                                  📄 View
-                                </a>
-                              ) : (
-                                <label className="text-[#108A63] hover:underline cursor-pointer text-xs font-medium flex items-center justify-center">
-                                  ⬆ Upload
-                                  <input type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileUpload(e, payment.id, 'payment')} />
-                                </label>
-                              )}
-                            </td>
-                            <td className="px-6 py-5 whitespace-nowrap text-xs font-medium text-slate-900 text-right">{formatCurrencyINR(payment.amountPaid)}</td>
+                            {inlinePaymentEditId === payment.id ? (
+                              <>
+                                <td className="px-6 py-5 whitespace-nowrap">
+                                  <input type="date" value={inlinePaymentData.paymentDate} onChange={(e) => setInlinePaymentData({...inlinePaymentData, paymentDate: e.target.value})} className="text-xs font-medium border border-slate-300 rounded px-2 py-1 outline-none focus:border-blue-500 bg-white w-full" />
+                                </td>
+                                <td className="px-6 py-5 whitespace-nowrap">
+                                  <input type="text" value={inlinePaymentData.transactionNumber} onChange={(e) => setInlinePaymentData({...inlinePaymentData, transactionNumber: e.target.value})} className="text-xs font-medium border border-slate-300 rounded px-2 py-1 outline-none focus:border-blue-500 bg-white w-full" placeholder="Txn ID" />
+                                </td>
+                                <td className="px-6 py-5 whitespace-nowrap">
+                                  <select value={inlinePaymentData.paymentMode} onChange={(e) => setInlinePaymentData({...inlinePaymentData, paymentMode: e.target.value})} className="text-xs font-medium border border-slate-300 rounded px-2 py-1 outline-none focus:border-blue-500 bg-white w-full">
+                                    <option value="Cash">Cash</option>
+                                    <option value="UPI">UPI</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cheque">Cheque</option>
+                                    <option value="Card">Card</option>
+                                  </select>
+                                </td>
+                                <td className="px-6 py-5 whitespace-nowrap text-center text-slate-400 text-xs">-</td>
+                                <td className="px-6 py-5 whitespace-nowrap">
+                                  <input type="number" value={inlinePaymentData.amountPaid} onChange={(e) => setInlinePaymentData({...inlinePaymentData, amountPaid: e.target.value})} className="text-xs font-medium border border-slate-300 rounded px-2 py-1 outline-none focus:border-blue-500 bg-white w-full text-right" />
+                                </td>
+                                <td className="px-6 py-5 whitespace-nowrap text-right">
+                                  <div className="flex items-center justify-end space-x-2">
+                                    <button onClick={() => handleInlinePaymentEditSave(payment.id)} className="text-emerald-600 hover:text-emerald-700" title="Save"><Check className="w-4 h-4" /></button>
+                                    <button onClick={handleInlinePaymentEditCancel} className="text-red-500 hover:text-red-600" title="Cancel"><X className="w-4 h-4" /></button>
+                                  </div>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="px-6 py-5 whitespace-nowrap text-xs text-slate-600 font-medium">{payment.paymentDate}</td>
+                                <td className="px-6 py-5 whitespace-nowrap text-xs text-slate-600">{payment.transactionNumber || '-'}</td>
+                                <td className="px-6 py-5 whitespace-nowrap text-xs text-slate-600">{payment.paymentMode}</td>
+                                <td className="px-6 py-5 whitespace-nowrap text-center">
+                                  {payment.document ? (
+                                    <a href={payment.document} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-medium flex items-center justify-center">
+                                      📄 View
+                                    </a>
+                                  ) : (
+                                    <label className="text-[#108A63] hover:underline cursor-pointer text-xs font-medium flex items-center justify-center">
+                                      ⬆ Upload
+                                      <input type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileUpload(e, payment.id, 'payment')} />
+                                    </label>
+                                  )}
+                                </td>
+                                <td className="px-6 py-5 whitespace-nowrap text-xs font-medium text-slate-900 text-right">{formatCurrencyINR(payment.amountPaid)}</td>
+                                <td className="px-6 py-5 whitespace-nowrap text-right">
+                                  <div className="flex items-center justify-end space-x-3">
+                                    <button 
+                                      onClick={() => handleInlinePaymentEditStart(payment)}
+                                      className="text-slate-400 hover:text-blue-600 transition-colors px-1"
+                                      title="Edit Payment"
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDeletePayment(payment.id)}
+                                      className="text-slate-400 hover:text-red-600 transition-colors px-1"
+                                      title="Delete Payment"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </>
+                            )}
                           </tr>
                         ))
                       )}

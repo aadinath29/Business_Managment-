@@ -39,8 +39,36 @@ const deletePayment = async (tenantId, paymentId) => {
   return result.rows[0];
 };
 
+const updatePayment = async (tenantId, paymentId, data) => {
+  const setClauses = [];
+  const values = [tenantId, paymentId];
+  let paramIndex = 3;
+
+  const fields = ['payment_date', 'payment_mode', 'transaction_number', 'amount_received', 'bank_name', 'received_by', 'document_url', 'notes'];
+  for (const field of fields) {
+    if (data[field] !== undefined) {
+      setClauses.push(`${field} = $${paramIndex}`);
+      values.push(data[field]);
+      paramIndex++;
+    }
+  }
+
+  if (setClauses.length === 0) return null;
+
+  const result = await db.query(
+    `UPDATE accounting_payments 
+     SET ${setClauses.join(', ')} 
+     WHERE tenant_id = $1 AND id = $2 
+     RETURNING *`,
+    values
+  );
+  
+  return result.rows[0];
+};
+
 module.exports = {
   recordPayment,
   getPaymentsByInvoiceId,
+  updatePayment,
   deletePayment
 };

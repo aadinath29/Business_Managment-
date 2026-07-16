@@ -15,7 +15,14 @@ const createQuotation = async (tenantId, data) => {
       quotation_date: data.quotation_date,
       validity_days: data.validity_days,
       status: data.status,
-      notes: data.notes
+      notes: data.notes,
+      customer_name: data.customer_name,
+      bill_to: data.bill_to,
+      ship_to: data.ship_to,
+      payment_terms: data.payment_terms,
+      priority: data.priority,
+      shipping_amount: data.shipping_amount,
+      terms: data.terms
     };
     
     const newQuotation = await quotationRepository.createQuotation(tenantId, quotationData, data.items, client);
@@ -53,7 +60,10 @@ const updateQuotation = async (tenantId, quotationId, updateData) => {
       throw new ValidationError('Quotation not found');
     }
 
-    if (updateData.status || updateData.validity_days !== undefined || updateData.notes !== undefined) {
+    const updateFields = ['status', 'validity_days', 'notes', 'customer_name', 'bill_to', 'ship_to', 'payment_terms', 'priority', 'shipping_amount', 'terms'];
+    const hasUpdates = updateFields.some(field => updateData[field] !== undefined);
+    
+    if (hasUpdates) {
       await quotationRepository.updateQuotationStatus(tenantId, quotationId, updateData);
     }
     
@@ -92,7 +102,14 @@ const reviseQuotation = async (tenantId, quotationId, data) => {
       quotation_date: data.quotation_date,
       validity_days: data.validity_days !== undefined ? data.validity_days : oldQuotation.validity_days,
       status: 'Draft',
-      notes: data.notes !== undefined ? data.notes : oldQuotation.notes
+      notes: data.notes !== undefined ? data.notes : oldQuotation.notes,
+      customer_name: data.customer_name !== undefined ? data.customer_name : oldQuotation.customer_name,
+      bill_to: data.bill_to !== undefined ? data.bill_to : oldQuotation.bill_to,
+      ship_to: data.ship_to !== undefined ? data.ship_to : oldQuotation.ship_to,
+      payment_terms: data.payment_terms !== undefined ? data.payment_terms : oldQuotation.payment_terms,
+      priority: data.priority !== undefined ? data.priority : oldQuotation.priority,
+      shipping_amount: data.shipping_amount !== undefined ? data.shipping_amount : oldQuotation.shipping_amount,
+      terms: data.terms !== undefined ? data.terms : oldQuotation.terms
     };
     
     const items = data.items && data.items.length > 0 ? data.items : oldQuotation.items;
@@ -109,10 +126,19 @@ const reviseQuotation = async (tenantId, quotationId, data) => {
   }
 };
 
+const deleteQuotation = async (tenantId, quotationId) => {
+  const deletedQuotation = await quotationRepository.deleteQuotation(tenantId, quotationId);
+  if (!deletedQuotation) {
+    throw new ValidationError('Quotation not found');
+  }
+  return deletedQuotation;
+};
+
 module.exports = {
   createQuotation,
   listQuotations,
   getQuotationById,
   updateQuotation,
-  reviseQuotation
+  reviseQuotation,
+  deleteQuotation
 };

@@ -22,6 +22,13 @@ const createQuotationSchema = z.object({
   validity_days: z.number().int().nonnegative().default(30),
   status: quotationStatusEnum.default('Draft'),
   notes: z.string().trim().optional().nullable(),
+  customer_name: z.string().trim().optional().nullable(),
+  bill_to: z.string().trim().optional().nullable(),
+  ship_to: z.string().trim().optional().nullable(),
+  payment_terms: z.string().trim().optional().nullable(),
+  priority: z.string().trim().optional().nullable(),
+  shipping_amount: z.number().nonnegative().optional().default(0),
+  terms: z.string().trim().optional().nullable(),
   items: z.array(quotationItemSchema).min(1, 'At least one item is required')
 }).strict('Unknown fields are not allowed');
 
@@ -29,6 +36,13 @@ const updateQuotationSchema = z.object({
   validity_days: z.number().int().nonnegative().optional(),
   status: quotationStatusEnum.optional(),
   notes: z.string().trim().optional().nullable(),
+  customer_name: z.string().trim().optional().nullable(),
+  bill_to: z.string().trim().optional().nullable(),
+  ship_to: z.string().trim().optional().nullable(),
+  payment_terms: z.string().trim().optional().nullable(),
+  priority: z.string().trim().optional().nullable(),
+  shipping_amount: z.number().nonnegative().optional(),
+  terms: z.string().trim().optional().nullable(),
   items: z.array(quotationItemSchema).optional(),
   quotation_number: z.string().trim().optional(),
   quotation_date: z.string().optional()
