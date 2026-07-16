@@ -6,7 +6,7 @@ import { exportToPDF } from '../../utils/pdfExport';
 import { TaxInvoicePrintTemplate } from './TaxInvoicePrintTemplate';
 import { accountingApi } from '../../services/api/accountingApi';
 
-export function GenerateInvoiceModal({ onClose, onSave, initialData, availableProformas = [] }) {
+export function GenerateInvoiceModal({ onClose, onSave, initialData, availableProformas = [], documentBranch }) {
   const documentRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
 

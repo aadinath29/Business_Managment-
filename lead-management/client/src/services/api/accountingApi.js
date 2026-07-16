@@ -327,18 +327,18 @@ export const accountingApi = {
     const payload = {
       proforma_number: frontendData.proformaNumber,
       proforma_date: frontendData.proformaDate,
-      due_date: frontendData.dueDate,
+      due_date: frontendData.dueDate || null,
       status: frontendData.status,
-      notes: frontendData.notes,
+      notes: frontendData.notes || null,
       items: frontendData.items.map(item => ({
-        service_name: item.serviceName,
-        description: item.description,
-        hsn_sac: item.hsnSac,
-        quantity: parseFloat(item.qty),
-        unit: item.unit,
-        rate: parseFloat(item.rate),
-        discount_percentage: parseFloat(item.discount),
-        tax_percentage: parseFloat(item.tax)
+        service_name: item.serviceName?.trim() || 'Service/Product',
+        description: item.description?.trim() || null,
+        hsn_sac: item.hsnSac?.trim() || null,
+        quantity: parseFloat(item.qty) || 1,
+        unit: item.unit?.trim() || 'Nos',
+        rate: parseFloat(item.rate) || 0,
+        discount_percentage: parseFloat(item.discount) || 0,
+        tax_percentage: parseFloat(item.tax) || 0
       }))
     };
     const response = await apiClient.put(`/accounting/proformas/${proformaId}`, payload);
@@ -364,23 +364,23 @@ export const accountingApi = {
   createInvoice: async (frontendData) => {
     const payload = {
       lead_id: frontendData.leadId,
-      proforma_id: frontendData.proformaId,
+      proforma_id: frontendData.proformaId || null,
       invoice_number: frontendData.invoiceNumber,
       invoice_date: frontendData.invoiceDate,
-      due_date: frontendData.dueDate,
+      due_date: frontendData.dueDate || null,
       invoice_type: frontendData.invoiceType,
-      place_of_supply: frontendData.placeOfSupply,
+      place_of_supply: frontendData.placeOfSupply || null,
       currency: frontendData.currency,
       status: frontendData.status,
       items: frontendData.items.map(item => ({
-        service_name: item.serviceName,
-        description: item.description,
-        hsn_sac: item.hsnSac,
-        quantity: parseFloat(item.qty),
-        unit: item.unit,
-        rate: parseFloat(item.rate),
-        discount_percentage: parseFloat(item.discount),
-        tax_percentage: parseFloat(item.tax)
+        service_name: item.serviceName?.trim() || 'Service/Product',
+        description: item.description?.trim() || null,
+        hsn_sac: item.hsnSac?.trim() || null,
+        quantity: parseFloat(item.qty) || 1,
+        unit: item.unit?.trim() || 'Nos',
+        rate: parseFloat(item.rate) || 0,
+        discount_percentage: parseFloat(item.discount) || 0,
+        tax_percentage: parseFloat(item.tax) || 0
       }))
     };
 
@@ -392,20 +392,20 @@ export const accountingApi = {
     const payload = {
       invoice_number: frontendData.invoiceNumber,
       invoice_date: frontendData.invoiceDate,
-      due_date: frontendData.dueDate,
+      due_date: frontendData.dueDate || null,
       invoice_type: frontendData.invoiceType,
-      place_of_supply: frontendData.placeOfSupply,
+      place_of_supply: frontendData.placeOfSupply || null,
       currency: frontendData.currency,
       status: frontendData.status,
       items: frontendData.items.map(item => ({
-        service_name: item.serviceName,
-        description: item.description,
-        hsn_sac: item.hsnSac,
-        quantity: parseFloat(item.qty),
-        unit: item.unit,
-        rate: parseFloat(item.rate),
-        discount_percentage: parseFloat(item.discount),
-        tax_percentage: parseFloat(item.tax)
+        service_name: item.serviceName?.trim() || 'Service/Product',
+        description: item.description?.trim() || null,
+        hsn_sac: item.hsnSac?.trim() || null,
+        quantity: parseFloat(item.qty) || 1,
+        unit: item.unit?.trim() || 'Nos',
+        rate: parseFloat(item.rate) || 0,
+        discount_percentage: parseFloat(item.discount) || 0,
+        tax_percentage: parseFloat(item.tax) || 0
       }))
     };
 

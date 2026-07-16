@@ -5,6 +5,8 @@ const { ValidationError } = require('../../auth/errors/authErrors');
 const validate = (schema, data) => {
   const result = schema.safeParse(data);
   if (!result.success) {
+    console.error('Validation Error payload:', JSON.stringify(data, null, 2));
+    console.error('Validation Error details:', JSON.stringify(result.error.format(), null, 2));
     throw new ValidationError('Validation failed', result.error.format());
   }
   return result.data;

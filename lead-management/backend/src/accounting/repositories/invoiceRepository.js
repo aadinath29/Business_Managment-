@@ -19,7 +19,7 @@ const createInvoice = async (tenantId, invoiceData, items, client) => {
       (tenant_id, lead_id, proforma_id, invoice_number, invoice_date, due_date, invoice_type, place_of_supply, currency, status)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING *`,
-    [tenantId, lead_id, proforma_id, invoice_number, invoice_date, due_date, invoice_type, place_of_supply, currency, status]
+    [tenantId, lead_id, proforma_id, invoice_number, invoice_date, due_date, invoice_type, place_of_supply, currency, 'Pending']
   );
   
   const invoice = result.rows[0];
@@ -30,6 +30,13 @@ const createInvoice = async (tenantId, invoiceData, items, client) => {
         (invoice_id, service_name, description, hsn_sac, quantity, unit, rate, discount_percentage, tax_percentage)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [invoice.id, item.service_name, item.description, item.hsn_sac, item.quantity, item.unit, item.rate, item.discount_percentage, item.tax_percentage]
+    );
+  }
+
+  if (status !== 'Pending') {
+    await executor.query(
+      'UPDATE accounting_invoices SET status = $1 WHERE id = $2',
+      [status, invoice.id]
     );
   }
 
@@ -117,6 +124,14 @@ const listInvoices = async (tenantId, filters, page, limit) => {
 
 const replaceInvoiceItems = async (invoiceId, items, client) => {
   const executor = client || db;
+
+  const res = await executor.query('SELECT status FROM accounting_invoices WHERE id = $1', [invoiceId]);
+  const origStatus = res.rows[0]?.status;
+
+  if (origStatus && origStatus !== 'Pending') {
+    await executor.query("UPDATE accounting_invoices SET status = 'Pending' WHERE id = $1", [invoiceId]);
+  }
+
   await executor.query(`DELETE FROM invoice_items WHERE invoice_id = $1`, [invoiceId]);
   
   for (const item of items) {
@@ -126,6 +141,10 @@ const replaceInvoiceItems = async (invoiceId, items, client) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [invoiceId, item.service_name, item.description, item.hsn_sac, item.quantity, item.unit, item.rate, item.discount_percentage, item.tax_percentage]
     );
+  }
+
+  if (origStatus && origStatus !== 'Pending') {
+    await executor.query("UPDATE accounting_invoices SET status = $1 WHERE id = $2", [origStatus, invoiceId]);
   }
 };
 

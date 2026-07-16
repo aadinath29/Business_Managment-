@@ -31,7 +31,8 @@ export const TaxInvoicePrintTemplate = forwardRef(({ data }, ref) => {
     paymentDate,
     receivedBy,
     notes,
-    logoBase64
+    logoBase64,
+    branch
   } = data;
 
   const actualAdvancePaid = advancePaymentReceived ? (parseFloat(advanceAmount) || 0) : 0;
@@ -70,14 +71,22 @@ export const TaxInvoicePrintTemplate = forwardRef(({ data }, ref) => {
               </div>
             )}
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Your Company Name</h2>
-          <p className="text-slate-600 mt-1">123 Business Road, Suite 100</p>
-          <p className="text-slate-600">Tech City, TC 12345</p>
-          <p className="text-slate-600 mt-1">
-            <span className="font-semibold">GSTIN:</span> 22AAAAA0000A1Z5
-          </p>
-          <p className="text-slate-600 mt-1">Phone: +1 234 567 8900 | Email: billing@company.com</p>
-          <p className="text-slate-600">Website: www.yourcompany.com</p>
+          <h2 className="text-xl font-bold text-slate-800">{branch?.branch_name || 'Branch Name'}</h2>
+          <p className="text-slate-600 mt-1">{branch?.address || 'Branch Address'}</p>
+          <p className="text-slate-600">{[branch?.city, branch?.state].filter(Boolean).join(', ') || 'City, State'}</p>
+          {(branch?.gstin || branch?.gst_number) && (
+            <p className="text-slate-600 mt-1">
+              <span className="font-semibold">GSTIN:</span> {branch.gstin || branch.gst_number}
+            </p>
+          )}
+          {(branch?.phone || branch?.email) && (
+            <p className="text-slate-600 mt-1">
+              {[
+                branch?.phone ? `Phone: ${branch.phone}` : null,
+                branch?.email ? `Email: ${branch.email}` : null
+              ].filter(Boolean).join(' | ')}
+            </p>
+          )}
         </div>
         <div className="text-right">
           <h1 className="text-3xl font-bold tracking-wider text-blue-900 mb-4 uppercase">TAX INVOICE</h1>

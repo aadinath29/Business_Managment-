@@ -6,7 +6,7 @@ import { exportToPDF } from '../../utils/pdfExport';
 import { ProformaInvoicePrintTemplate } from './ProformaInvoicePrintTemplate';
 import { accountingApi } from '../../services/api/accountingApi';
 
-export function GenerateProformaModal({ onClose, onSave, initialData, availableQuotations = [], existingProformas = [] }) {
+export function GenerateProformaModal({ onClose, onSave, initialData, availableQuotations = [], existingProformas = [], documentBranch }) {
   const documentRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -304,7 +304,8 @@ export function GenerateProformaModal({ onClose, onSave, initialData, availableQ
                     items: services,
                     totals,
                     remarks,
-                    logoBase64
+                    logoBase64,
+                    branch: documentBranch
                   }}
                 />
               </div>

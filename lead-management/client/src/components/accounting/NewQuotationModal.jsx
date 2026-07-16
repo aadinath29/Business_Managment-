@@ -5,7 +5,7 @@ import { formatCurrency } from '../../utils/currency';
 import { exportToPDF } from '../../utils/pdfExport';
 import { QuotationPrintTemplate } from './QuotationPrintTemplate';
 
-export function NewQuotationModal({ onClose, onSave, initialData, readOnly = false }) {
+export function NewQuotationModal({ onClose, onSave, initialData, readOnly = false, documentBranch }) {
   const documentRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -189,7 +189,8 @@ export function NewQuotationModal({ onClose, onSave, initialData, readOnly = fal
                 notes,
                 terms,
                 shippingAmount,
-                logoBase64
+                logoBase64,
+                branch: documentBranch
               }}
             />
           </div>

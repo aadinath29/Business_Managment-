@@ -24,6 +24,7 @@ export const ProformaInvoicePrintTemplate = forwardRef(({ data }, ref) => {
     totals = {},
     remarks,
     logoBase64,
+    branch,
   } = data;
 
   const totalTax = (totals.cgst || 0) + (totals.sgst || 0) + (totals.igst || 0);
@@ -57,11 +58,18 @@ export const ProformaInvoicePrintTemplate = forwardRef(({ data }, ref) => {
               </div>
             )}
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Your Company Name</h2>
-          <p className="text-slate-600 mt-1">123 Business Road, Suite 100</p>
-          <p className="text-slate-600">Tech City, TC 12345</p>
-          <p className="text-slate-600 mt-1">GSTIN: 22AAAAA0000A1Z5</p>
-          <p className="text-slate-600 mt-1">Phone: +1 234 567 8900 | Email: billing@company.com</p>
+          <h2 className="text-xl font-bold text-slate-800">{branch?.branch_name || 'Branch Name'}</h2>
+          <p className="text-slate-600 mt-1">{branch?.address || 'Branch Address'}</p>
+          <p className="text-slate-600">{[branch?.city, branch?.state].filter(Boolean).join(', ') || 'City, State'}</p>
+          {(branch?.gstin || branch?.gst_number) && <p className="text-slate-600 mt-1">GSTIN: {branch.gstin || branch.gst_number}</p>}
+          {(branch?.phone || branch?.email) && (
+            <p className="text-slate-600 mt-1">
+              {[
+                branch?.phone ? `Phone: ${branch.phone}` : null,
+                branch?.email ? `Email: ${branch.email}` : null
+              ].filter(Boolean).join(' | ')}
+            </p>
+          )}
         </div>
         <div className="text-right">
           <h1 className="text-3xl font-bold tracking-wider text-slate-800 mb-4 uppercase">PROFORMA INVOICE</h1>

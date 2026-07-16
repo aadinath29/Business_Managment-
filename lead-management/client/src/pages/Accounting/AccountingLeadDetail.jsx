@@ -7,10 +7,12 @@ import { GenerateInvoiceModal } from '../../components/accounting/GenerateInvoic
 import { GenerateProformaModal } from '../../components/accounting/GenerateProformaModal';
 import { accountingApi } from '../../services/api/accountingApi';
 import { leadsApi } from '../../services/api/leadsApi';
+import { useBranch } from '../../context/BranchContext';
 
 export function AccountingLeadDetail() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState('Quotations');
+  const { branches } = useBranch();
   
   // Lead info
   const [leadInfo, setLeadInfo] = useState(null);
@@ -327,7 +329,20 @@ export function AccountingLeadDetail() {
         await accountingApi.updateInvoice(editingInvoiceData.invoiceId, invoiceData);
         showToast('Invoice updated successfully!');
       } else {
-        await accountingApi.createInvoice(invoiceData);
+        const createdInvoice = await accountingApi.createInvoice({ ...invoiceData, leadId: id });
+        
+        if (parseFloat(invoiceData.amountPaid) > 0) {
+          await accountingApi.recordPayment(createdInvoice.invoiceId, {
+            paymentDate: invoiceData.paymentDate,
+            paymentMode: invoiceData.paymentMode || 'Bank Transfer',
+            transactionNumber: invoiceData.transactionNumber || invoiceData.chequeNumber,
+            amountPaid: invoiceData.amountPaid,
+            bankName: invoiceData.bankName,
+            receivedBy: invoiceData.receivedBy,
+            notes: 'Initial Payment / Advance'
+          });
+        }
+        
         showToast('Invoice generated successfully!');
       }
       setIsInvoiceModalOpen(false);
@@ -431,7 +446,7 @@ export function AccountingLeadDetail() {
         await accountingApi.updateProforma(editingProformaData.proformaId, proformaData);
         showToast('Proforma updated successfully!');
       } else {
-        await accountingApi.createProforma({ ...proformaData, leadId: lead.id });
+        await accountingApi.createProforma(id, proformaData);
         showToast('Proforma generated successfully!');
       }
       setIsProformaModalOpen(false);
@@ -458,6 +473,7 @@ export function AccountingLeadDetail() {
   // Lead display info
   const leadName = leadInfo?.company_name || leadInfo?.name || 'Lead';
   const leadStatus = leadInfo?.status || 'Active';
+  const documentBranch = branches?.find(b => b.id === leadInfo?.branch_id) || null;
 
   if (loading) {
     return (
@@ -1105,6 +1121,7 @@ export function AccountingLeadDetail() {
           onSave={handleSaveQuotation}
           initialData={editingQuotationData}
           readOnly={viewOnlyModal}
+          documentBranch={documentBranch}
         />
       )}
 
@@ -1114,6 +1131,7 @@ export function AccountingLeadDetail() {
           onSave={handleSaveInvoice}
           initialData={editingInvoiceData}
           availableProformas={proformas}
+          documentBranch={documentBranch}
         />
       )}
 
@@ -1123,6 +1141,7 @@ export function AccountingLeadDetail() {
           onSave={handleSaveProforma}
           initialData={editingProformaData}
           availableQuotations={quotations.filter(q => q.negotiationStatus === 'Approved & Signed' && !proformas.some(p => p.refNo === q.quotationNumber))}
+          documentBranch={documentBranch}
         />
       )}
     </div>
