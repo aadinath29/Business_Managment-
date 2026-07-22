@@ -38,9 +38,14 @@ export function NewLeadModal({ isOpen, onClose, onSave, leadToEdit }) {
         .catch(err => console.error('NewLeadModal: Failed to fetch team leaders', err));
 
       if (leadToEdit) {
+        // Find the Team Leader whose user ID or team ID matches leadToEdit.assignedTo
+        const tl = teamLeaders.find(t => t.id === leadToEdit.assignedTo || t.teamId === leadToEdit.assignedTo);
+        const resolvedAssignedTo = tl ? tl.id : leadToEdit.assignedTo;
+
         setFormData({
           ...EMPTY_FORM,
           ...leadToEdit,
+          assignedTo: resolvedAssignedTo,
           value: leadToEdit.value ? leadToEdit.value.toString() : ''
         });
         if (leadToEdit.value) {

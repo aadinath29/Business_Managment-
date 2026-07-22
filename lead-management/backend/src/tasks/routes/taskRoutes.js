@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const taskController = require('../controllers/taskController');
-const { authenticate, tenantGuard } = require('../../auth/middlewares/authMiddleware');
 
-router.use(authenticate);
-router.use(tenantGuard);
+
+
+
 
 // Label routes (global to tenant)
 router.get('/labels', taskController.getLabels);

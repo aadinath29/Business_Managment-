@@ -72,9 +72,24 @@ const branchIdParamSchema = z.object({
   }).uuid('Invalid Branch ID format')
 });
 
+const updateQuarterlyTargetsSchema = z.object({
+  financial_year: z.string({
+    required_error: 'Financial year is required'
+  }).trim().min(1, 'Financial year cannot be empty'),
+  q1_target: z.number().nonnegative('Q1 target must be greater than or equal to 0').optional().default(0),
+  q2_target: z.number().nonnegative('Q2 target must be greater than or equal to 0').optional().default(0),
+  q3_target: z.number().nonnegative('Q3 target must be greater than or equal to 0').optional().default(0),
+  q4_target: z.number().nonnegative('Q4 target must be greater than or equal to 0').optional().default(0),
+  q1_achieved: z.number().nonnegative('Q1 achieved must be greater than or equal to 0').nullable().optional(),
+  q2_achieved: z.number().nonnegative('Q2 achieved must be greater than or equal to 0').nullable().optional(),
+  q3_achieved: z.number().nonnegative('Q3 achieved must be greater than or equal to 0').nullable().optional(),
+  q4_achieved: z.number().nonnegative('Q4 achieved must be greater than or equal to 0').nullable().optional(),
+}).strict('Unknown fields are not allowed');
+
 module.exports = {
   createBranchSchema,
   updateBranchSchema,
   listBranchesQuerySchema,
-  branchIdParamSchema
+  branchIdParamSchema,
+  updateQuarterlyTargetsSchema
 };

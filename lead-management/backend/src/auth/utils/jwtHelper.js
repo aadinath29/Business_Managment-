@@ -3,7 +3,7 @@ const { TokenExpiredError, TokenInvalidError } = require('../errors/authErrors')
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
-const ACCESS_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '60m';
+const ACCESS_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '1d';
 const REFRESH_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
 
 /**

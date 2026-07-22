@@ -15,6 +15,7 @@ import { AccountingDashboard } from './pages/Accounting/AccountingDashboard';
 import { AccountingLeadDetail } from './pages/Accounting/AccountingLeadDetail';
 import { Login } from './pages/Login';
 import { Unauthorized } from './pages/Unauthorized';
+import AiAssistantPage from './pages/AiAssistantPage';
 import { BranchProvider } from './context/BranchContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/Layout/ProtectedRoute';
@@ -27,11 +28,11 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
-
           <Route path="/" element={<ProtectedRoute><BranchProvider><AppLayout /></BranchProvider></ProtectedRoute>}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="leads" element={<LeadsPage />} />
+            <Route path="chat-with-ai" element={<AiAssistantPage />} />
 
             <Route path="teams">
               <Route index element={

@@ -1,11 +1,11 @@
 const express = require('express');
 const projectController = require('../controllers/projectController');
-const { authenticate, tenantGuard } = require('../../auth/middlewares/authMiddleware');
+
 
 const router = express.Router();
 
-router.use(authenticate);
-router.use(tenantGuard);
+
+
 
 // Project Statistics
 router.get('/statistics', projectController.getProjectStatistics);

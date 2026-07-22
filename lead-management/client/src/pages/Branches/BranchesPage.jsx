@@ -35,12 +35,16 @@ export function BranchesPage() {
   // Security Interception & State Sync (URL parameter -> Store selected branch)
   useEffect(() => {
     if (role === 'team_leader' || role === 'branch_manager') {
-      if (branchId !== userBranch) {
-        // Prevent manual URL traversal or missing branchId
-        navigate(`/branches/${userBranch}`, { replace: true });
-      } else if (selectedBranchId !== userBranch) {
-        // Auto-select assigned branch
-        selectBranch(userBranch);
+      // Auto-heal 'all' or bad userBranch from localStorage by using the actual 
+      // backend-scoped branch list when it becomes available.
+      const assignedId = branches.length > 0 ? branches[0].id : userBranch;
+      
+      if (assignedId && assignedId !== 'all') {
+        if (branchId !== assignedId) {
+          navigate(`/branches/${assignedId}`, { replace: true });
+        } else if (selectedBranchId !== assignedId) {
+          selectBranch(assignedId);
+        }
       }
     } else if (role === 'admin') {
       if (!branchId) {

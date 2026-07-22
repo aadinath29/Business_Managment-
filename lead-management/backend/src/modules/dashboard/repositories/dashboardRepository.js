@@ -593,53 +593,90 @@ const getQuarterlyPerformance = async (tenantId, filters, client = db) => {
   params.push(parseInt(fyOffset) || 0);
   const offsetIdx = params.length;
 
+  const today = new Date();
+  let baseYear = today.getFullYear();
+  if (today.getMonth() < 3) baseYear -= 1;
+  baseYear += (parseInt(fyOffset) || 0);
+  const financialYear = `FY ${baseYear}-${(baseYear + 1).toString().slice(-2)}`;
+
+  params.push(financialYear);
+  const fyStrIdx = params.length;
+
   const queryText = `
     WITH fy_dates AS (
       SELECT 
         (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 4 
-          THEN DATE_TRUNC('year', CURRENT_DATE) + INTERVAL '3 months'
-          ELSE DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '9 months'
-        END) + (INTERVAL '1 year' * $${offsetIdx}) AS fy_start
+          THEN DATE_TRUNC('year', CURRENT_DATE)
+          ELSE DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '1 year'
+        END) + INTERVAL '3 months' + (INTERVAL '1 year' * $${offsetIdx}) AS fy_start
+    ),
+    quarters AS (
+       SELECT 'Q1' AS quarter, 0 AS seq
+       UNION ALL SELECT 'Q2', 1
+       UNION ALL SELECT 'Q3', 2
+       UNION ALL SELECT 'Q4', 3
     ),
     branch_target AS (
-      SELECT COALESCE(SUM(assigned_target), 0) / 4 as quarter_target
-      FROM branches
-      WHERE tenant_id = $1 AND deleted_at IS NULL
-      ${branchId ? `AND id = $2` : ''}
+      SELECT 
+        COALESCE(SUM(COALESCE(bqt.q1_target, 0)), 0) AS q1,
+        COALESCE(SUM(COALESCE(bqt.q2_target, 0)), 0) AS q2,
+        COALESCE(SUM(COALESCE(bqt.q3_target, 0)), 0) AS q3,
+        COALESCE(SUM(COALESCE(bqt.q4_target, 0)), 0) AS q4,
+        SUM(bqt.q1_achieved) AS q1_a,
+        SUM(bqt.q2_achieved) AS q2_a,
+        SUM(bqt.q3_achieved) AS q3_a,
+        SUM(bqt.q4_achieved) AS q4_a
+      FROM branches b
+      LEFT JOIN branch_quarterly_targets bqt 
+        ON b.id = bqt.branch_id AND bqt.financial_year = $${fyStrIdx}
+      WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
+      ${branchId ? `AND b.id = $2` : ''}
     ),
     quarterly_data AS (
       SELECT 
-        CASE 
-          WHEN EXTRACT(month FROM l.created_at) IN (4, 5, 6) THEN 'Q1'
-          WHEN EXTRACT(month FROM l.created_at) IN (7, 8, 9) THEN 'Q2'
-          WHEN EXTRACT(month FROM l.created_at) IN (10, 11, 12) THEN 'Q3'
-          ELSE 'Q4'
-        END AS quarter,
-        MIN(l.created_at) as q_start,
+        q.quarter,
+        q.seq,
+        (fd.fy_start + (INTERVAL '3 months' * q.seq)) AS q_start,
         COALESCE(SUM(l.expected_revenue) FILTER (WHERE l.status = 'Closed Won'), 0)::numeric AS achieved,
         COALESCE(SUM(l.expected_revenue) FILTER (WHERE l.status NOT IN ('Closed Won', 'Closed Lost')), 0)::numeric AS pending,
         COUNT(l.id) FILTER (WHERE l.status = 'Closed Won')::int AS won_leads,
         COUNT(l.id) FILTER (WHERE l.status = 'Closed Lost')::int AS lost_leads,
         COUNT(l.id) FILTER (WHERE l.status = 'Qualified')::int AS qualified_leads
-      FROM leads l
-      CROSS JOIN fy_dates
-      WHERE 1=1 ${joinConditions}
-        AND l.created_at >= (fy_dates.fy_start - INTERVAL '3 months') 
-        AND l.created_at < (fy_dates.fy_start + INTERVAL '1 year')
-      GROUP BY 1
+      FROM quarters q
+      CROSS JOIN fy_dates fd
+      LEFT JOIN leads l 
+        ON l.created_at >= (fd.fy_start + (INTERVAL '3 months' * q.seq)) 
+        AND l.created_at < (fd.fy_start + (INTERVAL '3 months' * (q.seq + 1)))
+        ${joinConditions}
+      GROUP BY q.quarter, q.seq, q_start
     ),
     ordered_quarters AS (
       SELECT 
         qd.quarter,
         qd.q_start,
-        qd.achieved,
+        COALESCE(
+          CASE 
+            WHEN qd.quarter = 'Q1' THEN (SELECT q1_a FROM branch_target)
+            WHEN qd.quarter = 'Q2' THEN (SELECT q2_a FROM branch_target)
+            WHEN qd.quarter = 'Q3' THEN (SELECT q3_a FROM branch_target)
+            WHEN qd.quarter = 'Q4' THEN (SELECT q4_a FROM branch_target)
+          END,
+          qd.achieved
+        ) AS achieved,
         qd.pending,
         qd.won_leads,
         qd.lost_leads,
         qd.qualified_leads,
-        (SELECT quarter_target FROM branch_target) AS target,
-        LAG(qd.achieved) OVER (ORDER BY qd.q_start) AS prev_achieved
+        CASE 
+          WHEN qd.quarter = 'Q1' THEN (SELECT q1 FROM branch_target)
+          WHEN qd.quarter = 'Q2' THEN (SELECT q2 FROM branch_target)
+          WHEN qd.quarter = 'Q3' THEN (SELECT q3 FROM branch_target)
+          WHEN qd.quarter = 'Q4' THEN (SELECT q4 FROM branch_target)
+        END AS target
       FROM quarterly_data qd
+    ),
+    quarters_with_prev AS (
+      SELECT *, LAG(achieved) OVER (ORDER BY q_start) AS prev_achieved FROM ordered_quarters
     )
     SELECT 
       oq.quarter,
@@ -662,20 +699,13 @@ const getQuarterlyPerformance = async (tenantId, filters, client = db) => {
         ELSE NULL
       END AS "growthPercentage",
       (SELECT fy_start FROM fy_dates) AS fy_start
-    FROM ordered_quarters oq
-    CROSS JOIN fy_dates
-    WHERE oq.q_start >= fy_dates.fy_start
+    FROM quarters_with_prev oq
     ORDER BY oq.q_start;
   `;
 
   const { rows } = await client.query(queryText, params);
   
   // Format the output
-  const today = new Date();
-  let baseYear = today.getFullYear();
-  if (today.getMonth() < 3) baseYear -= 1;
-  baseYear += (parseInt(fyOffset) || 0);
-  const financialYear = `FY ${baseYear}-${(baseYear + 1).toString().slice(-2)}`;
 
   const getStatus = (pct) => {
     if (pct >= 100) return 'Exceeded Target';

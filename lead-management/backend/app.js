@@ -76,69 +76,84 @@ app.get('/health', async (req, res, next) => {
 const authRoutes = require('./src/auth/routes/authRoutes');
 app.use('/api/v1/auth', authRoutes);
 
+// Register AI assistant routes (unprotected for now)
+const aiRoutes = require('./src/ai/ai.routes');
+app.use('/api/v1/ai-assistant', aiRoutes);
+
+// --- PROTECTED ROUTES ---
+// --- PROTECTED ROUTES ---
+const { authenticate, tenantGuard } = require('./src/auth/middlewares/authMiddleware');
+const protectedRouter = express.Router();
+
 // Register branch routes
 const branchRoutes = require('./src/branches/routes/branchRoutes');
-app.use('/api/v1/branches', branchRoutes);
+protectedRouter.use('/branches', authenticate, tenantGuard, branchRoutes);
 
 // Register team routes
-const teamRoutes = require('./src/teams/routes/teamRoutes');
-app.use('/api/v1', teamRoutes);
+const teamsRouter = require('./src/teams/routes/teamRoutes');
+const teamLeadersRouter = require('./src/teams/routes/teamLeaderRoutes');
+protectedRouter.use('/teams', authenticate, tenantGuard, teamsRouter);
+protectedRouter.use('/team-leaders', authenticate, tenantGuard, teamLeadersRouter);
 
 // Register developer routes
 const developerRoutes = require('./src/developers/routes/developerRoutes');
-app.use('/api/v1/developers', developerRoutes);
+protectedRouter.use('/developers', authenticate, tenantGuard, developerRoutes);
 
 // Register lead routes
 const leadRoutes = require('./src/leads/routes/leadRoutes');
-app.use('/api/v1/leads', leadRoutes);
+protectedRouter.use('/leads', authenticate, tenantGuard, leadRoutes);
 
 // Register dashboard routes
 const dashboardRoutes = require('./src/modules/dashboard/routes/dashboardRoutes');
-app.use('/api/v1/dashboard', dashboardRoutes);
+protectedRouter.use('/dashboard', authenticate, tenantGuard, dashboardRoutes);
 
 // Register reports routes
 const reportsRoutes = require('./src/modules/reports/routes/reportsRoutes');
-app.use('/api/v1/reports', reportsRoutes);
+protectedRouter.use('/reports', authenticate, tenantGuard, reportsRoutes);
 
 // Register standalone notes routes
 const notesRoutes = require('./src/leads/routes/notesRoutes');
-app.use('/api/v1/notes', notesRoutes);
+protectedRouter.use('/notes', authenticate, tenantGuard, notesRoutes);
 
 // Register standalone communications routes
 const communicationsRoutes = require('./src/leads/routes/communicationsRoutes');
-app.use('/api/v1/communications', communicationsRoutes);
+protectedRouter.use('/communications', authenticate, tenantGuard, communicationsRoutes);
 
 // Register standalone followups routes
 const followupsRoutes = require('./src/leads/routes/followupsRoutes');
-app.use('/api/v1/followups', followupsRoutes);
+protectedRouter.use('/followups', authenticate, tenantGuard, followupsRoutes);
 
 // Register standalone requirements routes
 const requirementsRoutes = require('./src/leads/routes/requirementsRoutes');
-app.use('/api/v1/requirements', requirementsRoutes);
+protectedRouter.use('/requirements', authenticate, tenantGuard, requirementsRoutes);
 
 // Register standalone proposals routes
 const proposalsRoutes = require('./src/leads/routes/proposalsRoutes');
-app.use('/api/v1/proposals', proposalsRoutes);
+protectedRouter.use('/proposals', authenticate, tenantGuard, proposalsRoutes);
 
 // Register standalone projects routes
 const projectsRoutes = require('./src/leads/routes/projectsRoutes');
-app.use('/api/v1/projects', projectsRoutes);
+protectedRouter.use('/projects', authenticate, tenantGuard, projectsRoutes);
 
 // Register standalone delivery routes
 const deliveryRoutes = require('./src/leads/routes/deliveryRoutes');
-app.use('/api/v1/delivery', deliveryRoutes);
+protectedRouter.use('/delivery', authenticate, tenantGuard, deliveryRoutes);
 
 // Register standalone customer success routes
 const customerSuccessRoutes = require('./src/leads/routes/customerSuccessRoutes');
-app.use('/api/v1/customer-success', customerSuccessRoutes);
+protectedRouter.use('/customer-success', authenticate, tenantGuard, customerSuccessRoutes);
 
 // Register tasks routes
 const taskRoutes = require('./src/tasks/routes/taskRoutes');
-app.use('/api/v1/tasks', taskRoutes);
+protectedRouter.use('/tasks', authenticate, tenantGuard, taskRoutes);
 
 // Register accounting routes
 const accountingRoutes = require('./src/accounting/routes/accountingRoutes');
-app.use('/api/v1/accounting', accountingRoutes);
+protectedRouter.use('/accounting', authenticate, tenantGuard, accountingRoutes);
+
+// Mount the protected router to /api/v1
+app.use('/api/v1', protectedRouter);
+// -----------------------
 
 // 5. Fallback 404 handler for unmatched routes
 app.use((req, res, next) => {

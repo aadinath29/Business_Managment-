@@ -303,10 +303,66 @@ const deleteBranch = async (id, tenantId, userRole, userId) => {
   return true;
 };
 
+/**
+ * Get branch quarterly targets
+ */
+const getQuarterlyTargets = async (id, tenantId, userRole, userId, financialYear) => {
+  enforceNotDeveloper(userRole);
+
+  if (userRole === ROLES.TEAM_LEADER) {
+    const assignedBranchId = await branchRepository.findTeamLeaderAssignedBranchId(userId);
+    if (id !== assignedBranchId) {
+      throw new ForbiddenError('You are only authorized to view your assigned branch');
+    }
+  }
+
+  if (userRole === ROLES.ADMIN) {
+    const assignedBranchId = await branchRepository.findManagerAssignedBranchId(userId);
+    if (id !== assignedBranchId) {
+      throw new ForbiddenError('You are only authorized to view your assigned branch');
+    }
+  }
+
+  const existingBranch = await branchRepository.findById(id, tenantId);
+  if (!existingBranch) {
+    throw new BranchNotFoundError();
+  }
+
+  const targets = await branchRepository.getQuarterlyTargets(tenantId, id, financialYear);
+  return targets || { q1_target: 0, q2_target: 0, q3_target: 0, q4_target: 0 };
+};
+
+/**
+ * Update branch quarterly targets
+ */
+const updateQuarterlyTargets = async (id, tenantId, userRole, userId, data) => {
+  enforceManagementRole(userRole);
+
+  if (userRole === ROLES.ADMIN) {
+    const assignedBranchId = await branchRepository.findManagerAssignedBranchId(userId);
+    if (id !== assignedBranchId) {
+      throw new ForbiddenError('You are only authorized to update your assigned branch targets');
+    }
+  }
+
+  const existingBranch = await branchRepository.findById(id, tenantId);
+  if (!existingBranch) {
+    throw new BranchNotFoundError();
+  }
+
+  const { financial_year, ...targets } = data;
+  const updated = await branchRepository.upsertQuarterlyTargets(tenantId, id, financial_year, targets);
+  
+  logger.info(`Branch Quarterly Targets Updated: BranchID=${id} | FY=${financial_year} | Tenant=${tenantId}`);
+  return updated;
+};
+
 module.exports = {
   createBranch,
   getBranches,
   getBranchById,
   updateBranch,
-  deleteBranch
+  deleteBranch,
+  getQuarterlyTargets,
+  updateQuarterlyTargets
 };

@@ -262,6 +262,50 @@ const softDelete = async (id, tenantId) => {
   return rows.length > 0;
 };
 
+const getQuarterlyTargets = async (tenantId, branchId, financialYear) => {
+  const queryText = `
+    SELECT q1_target, q2_target, q3_target, q4_target, q1_achieved, q2_achieved, q3_achieved, q4_achieved
+    FROM branch_quarterly_targets
+    WHERE tenant_id = $1 AND branch_id = $2 AND financial_year = $3
+  `;
+  const { rows } = await db.query(queryText, [tenantId, branchId, financialYear]);
+  return rows.length ? rows[0] : null;
+};
+
+const upsertQuarterlyTargets = async (tenantId, branchId, financialYear, targets) => {
+  const { 
+    q1_target = 0, q2_target = 0, q3_target = 0, q4_target = 0,
+    q1_achieved = null, q2_achieved = null, q3_achieved = null, q4_achieved = null
+  } = targets;
+  
+  const queryText = `
+    INSERT INTO branch_quarterly_targets (
+      tenant_id, branch_id, financial_year, 
+      q1_target, q2_target, q3_target, q4_target,
+      q1_achieved, q2_achieved, q3_achieved, q4_achieved
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    ON CONFLICT (tenant_id, branch_id, financial_year)
+    DO UPDATE SET 
+      q1_target = EXCLUDED.q1_target,
+      q2_target = EXCLUDED.q2_target,
+      q3_target = EXCLUDED.q3_target,
+      q4_target = EXCLUDED.q4_target,
+      q1_achieved = EXCLUDED.q1_achieved,
+      q2_achieved = EXCLUDED.q2_achieved,
+      q3_achieved = EXCLUDED.q3_achieved,
+      q4_achieved = EXCLUDED.q4_achieved,
+      updated_at = NOW()
+    RETURNING *;
+  `;
+  const { rows } = await db.query(queryText, [
+    tenantId, branchId, financialYear, 
+    q1_target, q2_target, q3_target, q4_target,
+    q1_achieved, q2_achieved, q3_achieved, q4_achieved
+  ]);
+  return rows[0];
+};
+
 module.exports = {
   checkBranchCodeExists,
   create,
@@ -270,5 +314,7 @@ module.exports = {
   findManagerAssignedBranchId,
   findAll,
   update,
-  softDelete
+  softDelete,
+  getQuarterlyTargets,
+  upsertQuarterlyTargets
 };

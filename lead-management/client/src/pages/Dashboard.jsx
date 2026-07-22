@@ -10,7 +10,7 @@ import { dashboardApi } from '../services/api/dashboardApi';
 
 export function Dashboard() {
   const { currentBranchId, setCurrentBranchId, branches, currentBranch } = usePageBranch('dashboard');
-  const { role, leaderId } = useAuth();
+  const { role, leaderId, backendRole } = useAuth();
   const [stats, setStats] = useState({ totalLeads: 0, pipelineValue: 0, closedWon: 0, conversionRate: 0 });
   const [pipelineData, setPipelineData] = useState([]);
   const [chartData, setChartData] = useState([]);
@@ -108,7 +108,7 @@ export function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        {useAuth().backendRole === 'SUPER_ADMIN' && (
+        {backendRole === 'SUPER_ADMIN' && (
           <PageBranchSelector 
             currentBranchId={currentBranchId}
             setCurrentBranchId={setCurrentBranchId}

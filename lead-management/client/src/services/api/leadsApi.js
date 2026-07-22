@@ -99,8 +99,7 @@ export const leadsApi = {
       expectedRevenue: 'expected_revenue',
       status: 'status',
       branchId: 'branch_id',
-      teamId: 'team_id',
-      assignedTo: 'team_id'
+      teamId: 'team_id'
     };
 
     Object.entries(updates).forEach(([key, val]) => {

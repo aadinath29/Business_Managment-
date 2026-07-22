@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
 @layer base {
+  html {
+    /* Scales down all REM-based Tailwind spacing/typography globally by ~6.25% to create a balanced, professional look */
+    font-size: 15px; 
+  }
   body {
     @apply bg-gray-50 text-gray-900;
   }

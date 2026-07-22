@@ -134,5 +134,39 @@ export const branchApi = {
     return {
       success: response.data.success
     };
+  },
+
+  /**
+   * Gets explicit quarterly targets for a branch
+   */
+  getQuarterlyTargets: async (id, financialYear) => {
+    const response = await apiClient.get(`/branches/${id}/quarterly-targets`, {
+      params: { financial_year: financialYear }
+    });
+    return {
+      success: response.data.success,
+      data: response.data.data
+    };
+  },
+
+  /**
+   * Updates explicit quarterly targets for a branch
+   */
+  updateQuarterlyTargets: async (id, data) => {
+    const response = await apiClient.put(`/branches/${id}/quarterly-targets`, {
+      financial_year: data.financialYear,
+      q1_target: Number(data.q1Target),
+      q2_target: Number(data.q2Target),
+      q3_target: Number(data.q3Target),
+      q4_target: Number(data.q4Target),
+      q1_achieved: data.q1Achieved !== null ? Number(data.q1Achieved) : null,
+      q2_achieved: data.q2Achieved !== null ? Number(data.q2Achieved) : null,
+      q3_achieved: data.q3Achieved !== null ? Number(data.q3Achieved) : null,
+      q4_achieved: data.q4Achieved !== null ? Number(data.q4Achieved) : null,
+    });
+    return {
+      success: response.data.success,
+      data: response.data.data
+    };
   }
 };

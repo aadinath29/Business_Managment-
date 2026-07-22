@@ -7,10 +7,42 @@ import {
   ResponsiveContainer, ReferenceLine, Cell 
 } from 'recharts';
 import { dashboardApi } from '../../services/api/dashboardApi';
+import { branchApi } from '../../services/api/branchApi';
+import { Modal } from '../UI/Modal';
+import { Button } from '../UI/Button';
+import { Input } from '../UI/Input';
+import { useAuth } from '../../context/AuthContext';
+import { Edit2 } from 'lucide-react';
 
 export function BranchPerformance({ branch }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [savingTargets, setSavingTargets] = useState(false);
+  const [financialYear, setFinancialYear] = useState('');
+  const [formData, setFormData] = useState({
+    q1Target: 0,
+    q2Target: 0,
+    q3Target: 0,
+    q4Target: 0,
+    q1Achieved: null,
+    q2Achieved: null,
+    q3Achieved: null,
+    q4Achieved: null
+  });
+
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const { user, role, backendRole } = useAuth();
+  const currentRole = backendRole || role || (user && user.role);
+  const canEditTargets = currentRole === 'SUPER_ADMIN' || currentRole === 'ADMIN' || currentRole === 'BRANCH_MANAGER';
 
   // Left card calculation
   const achievement = calculateAchievementPercentage(branch.achievedTarget, branch.assignedTarget);
@@ -25,21 +57,92 @@ export function BranchPerformance({ branch }) {
 
   const status = getTargetStatus(achievement);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!branch || !branch.id) return;
-      try {
-        setLoading(true);
-        const res = await dashboardApi.getQuarterlyPerformance({ branchId: branch.id });
-        setData(res);
-      } catch (err) {
-        console.error('Failed to load quarterly performance', err);
-      } finally {
-        setLoading(false);
+  const fetchData = async () => {
+    if (!branch || !branch.id) return;
+    try {
+      setLoading(true);
+      const res = await dashboardApi.getQuarterlyPerformance({ branchId: branch.id });
+      setData(res);
+      if (res.length > 0) {
+        setFinancialYear(res[0].financialYear);
       }
-    };
+    } catch (err) {
+      console.error('Failed to load quarterly performance', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [branch]);
+
+  const handleEditClick = async () => {
+    if (!financialYear) return;
+    try {
+      const res = await branchApi.getQuarterlyTargets(branch.id, financialYear);
+      if (res.success && res.data) {
+        setFormData({
+          q1Target: res.data.q1_target || 0,
+          q2Target: res.data.q2_target || 0,
+          q3Target: res.data.q3_target || 0,
+          q4Target: res.data.q4_target || 0,
+          q1Achieved: res.data.q1_achieved !== null ? res.data.q1_achieved : null,
+          q2Achieved: res.data.q2_achieved !== null ? res.data.q2_achieved : null,
+          q3Achieved: res.data.q3_achieved !== null ? res.data.q3_achieved : null,
+          q4Achieved: res.data.q4_achieved !== null ? res.data.q4_achieved : null,
+        });
+      } else {
+        // Defaults if no explicit targets exist yet
+        const defaultQ = 0;
+        setFormData({
+          q1Target: defaultQ,
+          q2Target: defaultQ,
+          q3Target: defaultQ,
+          q4Target: defaultQ,
+          q1Achieved: null,
+          q2Achieved: null,
+          q3Achieved: null,
+          q4Achieved: null
+        });
+      }
+      setIsEditModalOpen(true);
+    } catch (error) {
+      console.error('Failed to fetch explicit targets', error);
+      showToast('Failed to load targets', 'error');
+    }
+  };
+
+  const handleSaveTargets = async (e) => {
+    e.preventDefault();
+    try {
+      setSavingTargets(true);
+      await branchApi.updateQuarterlyTargets(branch.id, {
+        financialYear,
+        ...formData
+      });
+      showToast('Targets updated successfully');
+      setIsEditModalOpen(false);
+      fetchData(); // Refresh the chart
+    } catch (error) {
+      console.error('Failed to update targets', error);
+      showToast(error.response?.data?.message || 'Failed to update targets', 'error');
+    } finally {
+      setSavingTargets(false);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let finalValue = Number(value);
+    if (value === '') {
+      finalValue = name.includes('Achieved') ? null : 0;
+    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: finalValue
+    }));
+  };
 
   const getBarColor = (itemStatus) => {
     switch (itemStatus) {
@@ -171,11 +274,23 @@ export function BranchPerformance({ branch }) {
             <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
               Quarterly Performance Overview
             </h4>
-            {data.length > 0 && (
-              <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
-                {data[0].financialYear}
-              </span>
-            )}
+            <div className="flex items-center space-x-2">
+              {data.length > 0 && (
+                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                  {data[0].financialYear}
+                </span>
+              )}
+              {canEditTargets && data.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-6 text-[10px] px-2 py-0"
+                  onClick={handleEditClick}
+                >
+                  <Edit2 className="w-3 h-3 mr-1" /> Edit Targets
+                </Button>
+              )}
+            </div>
           </div>
           
           <div className="flex-1 flex flex-col min-h-0">
@@ -255,6 +370,136 @@ export function BranchPerformance({ branch }) {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Edit Targets Modal */}
+      <Modal 
+        isOpen={isEditModalOpen} 
+        onClose={() => setIsEditModalOpen(false)}
+        title={`Edit Quarterly Targets (${financialYear})`}
+      >
+        <form onSubmit={handleSaveTargets} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Quarter 1 (Apr-Jun)</h5>
+              <Input
+                label="Target Amount"
+                type="number"
+                name="q1Target"
+                value={formData.q1Target}
+                onChange={handleChange}
+                min="0"
+                required
+              />
+              <Input
+                label="Achieved Override (Optional)"
+                type="number"
+                name="q1Achieved"
+                value={formData.q1Achieved === null ? '' : formData.q1Achieved}
+                onChange={handleChange}
+                min="0"
+                placeholder="Auto calculated"
+              />
+            </div>
+            
+            <div className="space-y-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Quarter 2 (Jul-Sep)</h5>
+              <Input
+                label="Target Amount"
+                type="number"
+                name="q2Target"
+                value={formData.q2Target}
+                onChange={handleChange}
+                min="0"
+                required
+              />
+              <Input
+                label="Achieved Override (Optional)"
+                type="number"
+                name="q2Achieved"
+                value={formData.q2Achieved === null ? '' : formData.q2Achieved}
+                onChange={handleChange}
+                min="0"
+                placeholder="Auto calculated"
+              />
+            </div>
+            
+            <div className="space-y-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Quarter 3 (Oct-Dec)</h5>
+              <Input
+                label="Target Amount"
+                type="number"
+                name="q3Target"
+                value={formData.q3Target}
+                onChange={handleChange}
+                min="0"
+                required
+              />
+              <Input
+                label="Achieved Override (Optional)"
+                type="number"
+                name="q3Achieved"
+                value={formData.q3Achieved === null ? '' : formData.q3Achieved}
+                onChange={handleChange}
+                min="0"
+                placeholder="Auto calculated"
+              />
+            </div>
+            
+            <div className="space-y-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Quarter 4 (Jan-Mar)</h5>
+              <Input
+                label="Target Amount"
+                type="number"
+                name="q4Target"
+                value={formData.q4Target}
+                onChange={handleChange}
+                min="0"
+                required
+              />
+              <Input
+                label="Achieved Override (Optional)"
+                type="number"
+                name="q4Achieved"
+                value={formData.q4Achieved === null ? '' : formData.q4Achieved}
+                onChange={handleChange}
+                min="0"
+                placeholder="Auto calculated"
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg border border-blue-100 mt-4">
+            <span className="text-sm font-medium text-blue-800">Total Yearly Target</span>
+            <span className="text-lg font-bold font-mono text-blue-900">
+              {formatCurrency(formData.q1Target + formData.q2Target + formData.q3Target + formData.q4Target)}
+            </span>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEditModalOpen(false)}
+              disabled={savingTargets}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={savingTargets}
+            >
+              {savingTargets ? 'Saving...' : 'Save Targets'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-6 right-6 px-6 py-3 rounded shadow-lg z-[9999] text-white flex items-center font-medium ${toast.type === 'error' ? 'bg-red-600' : 'bg-emerald-600'} transition-opacity duration-300`}>
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

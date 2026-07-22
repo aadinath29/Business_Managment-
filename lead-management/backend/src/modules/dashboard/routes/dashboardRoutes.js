@@ -1,12 +1,12 @@
 const express = require('express');
 const dashboardController = require('../controllers/dashboardController');
-const { authenticate, tenantGuard } = require('../../../auth/middlewares/authMiddleware');
+
 
 const router = express.Router();
 
 // Apply auth and tenant guards to all dashboard endpoints
-router.use(authenticate);
-router.use(tenantGuard);
+
+
 
 router.get('/summary', dashboardController.getSummary);
 router.get('/lead-funnel', dashboardController.getLeadFunnel);

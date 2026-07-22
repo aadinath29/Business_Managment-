@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, CheckSquare, Target, Building2, LogOut, Calculator } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, CheckSquare, Target, Building2, LogOut, Calculator, MessageSquare } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../context/AuthContext';
 
@@ -11,6 +11,7 @@ const navItems = [
   { path: '/teams', label: 'Teams', icon: Users },
   { path: '/branches', label: 'Branches', icon: Building2 },
   { path: '/reports', label: 'Reports', icon: FileText, roles: ['SUPER_ADMIN'] },
+  { path: '/chat-with-ai', label: 'Chat with AI', icon: MessageSquare },
 ];
 
 export function Sidebar({ onClose }) {

@@ -2,13 +2,8 @@ const express = require('express');
 const leadController = require('../controllers/leadController');
 const projectController = require('../controllers/projectController');
 const deliveryCSController = require('../controllers/deliveryCSController');
-const { authenticate, tenantGuard } = require('../../auth/middlewares/authMiddleware');
 
 const router = express.Router();
-
-// Apply authentication and tenant isolation guard to all leads endpoints
-router.use(authenticate);
-router.use(tenantGuard);
 
 // Route mappings for nested lead assignments & projects
 router.post('/:id/assign', projectController.assignLead);

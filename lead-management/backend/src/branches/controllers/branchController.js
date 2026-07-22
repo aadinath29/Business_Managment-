@@ -114,10 +114,60 @@ const deleteBranch = async (req, res, next) => {
   }
 };
 
+const getQuarterlyTargets = async (req, res, next) => {
+  try {
+    const { id } = validate(branchIdParamSchema, req.params);
+    const { financial_year } = req.query;
+    if (!financial_year) {
+      throw new ValidationError('financial_year query parameter is required');
+    }
+    
+    const tenantId = req.user.tenant_id;
+    const userRole = req.user.role;
+    const userId = req.user.user_id;
+
+    const targets = await branchService.getQuarterlyTargets(id, tenantId, userRole, userId, financial_year);
+
+    return res.status(200).json({
+      success: true,
+      data: targets
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateQuarterlyTargets = async (req, res, next) => {
+  try {
+    const { id } = validate(branchIdParamSchema, req.params);
+    
+    // We can define a schema or reuse updateQuarterlyTargetsSchema
+    // Wait, we need to require updateQuarterlyTargetsSchema at the top
+    const { updateQuarterlyTargetsSchema } = require('../validators/branchValidator');
+    const validatedData = validate(updateQuarterlyTargetsSchema, req.body);
+    
+    const tenantId = req.user.tenant_id;
+    const userRole = req.user.role;
+    const userId = req.user.user_id;
+
+    const targets = await branchService.updateQuarterlyTargets(id, tenantId, userRole, userId, validatedData);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Quarterly targets updated successfully',
+      data: targets
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createBranch,
   getBranches,
   getBranchById,
   updateBranch,
-  deleteBranch
+  deleteBranch,
+  getQuarterlyTargets,
+  updateQuarterlyTargets
 };

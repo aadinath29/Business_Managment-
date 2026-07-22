@@ -55,7 +55,7 @@ export function AddDeveloperModal({ isOpen, onClose, teamLeaderId, teamId, leadI
       } else {
         await developersApi.create({
           ...formData,
-          teamId: teamId || teamLeaderId
+          teamId: teamId
         });
       }
       
