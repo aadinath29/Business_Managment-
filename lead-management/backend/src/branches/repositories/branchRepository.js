@@ -37,7 +37,8 @@ const create = async (tenantId, data, client = db) => {
     'tenant_id', 'branch_name', 'branch_code', 'company_name',
     'company_location', 'country', 'state', 'city', 'address',
     'phone', 'email', 'assigned_target', 'achieved_target',
-    'description', 'status', 'manager_id'
+    'description', 'status', 'manager_id', 'pincode', 'working_days',
+    'timezone', 'gst_number', 'pan_number'
   ];
 
   const params = [
@@ -56,12 +57,19 @@ const create = async (tenantId, data, client = db) => {
     data.achieved_target || 0,
     data.description || null,
     'Active',
-    data.manager_id || null
+    data.manager_id || null,
+    data.pincode || null,
+    data.working_days || null,
+    data.timezone || null,
+    data.gst_number || null,
+    data.pan_number || null
   ];
+
+  const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
 
   const queryText = `
     INSERT INTO branches (${fields.join(', ')})
-    VALUES (${fields.map((_, i) => `$${i + 1}`).join(', ')})
+    VALUES (${placeholders})
     RETURNING *
   `;
 

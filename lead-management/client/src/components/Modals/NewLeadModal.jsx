@@ -26,9 +26,11 @@ export function NewLeadModal({ isOpen, onClose, onSave, leadToEdit }) {
   const [displayValue, setDisplayValue] = useState('');
   const [branches, setBranches] = useState([]);
   const [teamLeaders, setTeamLeaders] = useState([]);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (isOpen) {
+      setErrors({});
       // Fetch fresh data every time the modal opens to ensure dropdown is populated
       branchService.getAll()
         .then(setBranches)
@@ -66,6 +68,9 @@ export function NewLeadModal({ isOpen, onClose, onSave, leadToEdit }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
   };
 
   const handleValueChange = (e) => {
@@ -90,6 +95,18 @@ export function NewLeadModal({ isOpen, onClose, onSave, leadToEdit }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    const newErrors = {};
+    if (!formData.name) newErrors.name = 'Company Name is required';
+    if (!formData.contactPerson) newErrors.contactPerson = 'Contact Person is required';
+    if (!formData.branchId) newErrors.branchId = 'Assign Branch is required';
+    if (!formData.assignedTo) newErrors.assignedTo = 'Assign Team Leader is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     setSubmitting(true);
 
     // Find the selected team leader and get their teamId (the actual team UUID)
@@ -115,16 +132,14 @@ export function NewLeadModal({ isOpen, onClose, onSave, leadToEdit }) {
     }
   };
 
-  const isFormValid = formData.name && formData.contactPerson && formData.branchId && formData.assignedTo;
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={leadToEdit ? "Edit Lead" : "Add New Lead"} size="xl">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <h3 className="text-sm font-semibold text-gray-900 mb-3 border-b pb-1 border-gray-100">Lead Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="Company Name" name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Acme Corp" required />
-            <Input label="Contact Person" name="contactPerson" value={formData.contactPerson} onChange={handleChange} placeholder="e.g. Priya Singh" required />
+            <Input label="Company Name" name="name" value={formData.name} onChange={handleChange} error={errors.name} placeholder="e.g. Acme Corp" required />
+            <Input label="Contact Person" name="contactPerson" value={formData.contactPerson} onChange={handleChange} error={errors.contactPerson} placeholder="e.g. Priya Singh" required />
             <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="e.g. priya@acme.com" />
             <Input label="Mobile" name="mobile" type="text" value={formData.mobile} onChange={handleChange} placeholder="e.g. +91 9876543210" />
             <Select
@@ -180,6 +195,7 @@ export function NewLeadModal({ isOpen, onClose, onSave, leadToEdit }) {
               value={formData.branchId}
               onChange={handleChange}
               options={branches.map(b => ({ label: b.name, value: b.id }))}
+              error={errors.branchId}
               required
             />
              <Select
@@ -188,6 +204,7 @@ export function NewLeadModal({ isOpen, onClose, onSave, leadToEdit }) {
               value={formData.assignedTo}
               onChange={handleChange}
               options={teamLeaders.filter(tl => !formData.branchId || tl.branchId === formData.branchId).map(tl => ({ label: tl.name, value: tl.id }))}
+              error={errors.assignedTo}
               required
             />
           </div>
@@ -195,7 +212,7 @@ export function NewLeadModal({ isOpen, onClose, onSave, leadToEdit }) {
 
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" disabled={!isFormValid || submitting}>
+          <Button type="submit" disabled={submitting}>
             {submitting ? 'Saving...' : 'Save Lead'}
           </Button>
         </div>

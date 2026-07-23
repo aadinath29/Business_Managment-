@@ -71,12 +71,12 @@ export const TaxInvoicePrintTemplate = forwardRef(({ data }, ref) => {
               </div>
             )}
           </div>
-          <h2 className="text-xl font-bold text-slate-800">{branch?.branch_name || 'Branch Name'}</h2>
+          <h2 className="text-xl font-bold text-slate-800">{branch?.branchName || 'Branch Name'}</h2>
           <p className="text-slate-600 mt-1">{branch?.address || 'Branch Address'}</p>
           <p className="text-slate-600">{[branch?.city, branch?.state].filter(Boolean).join(', ') || 'City, State'}</p>
-          {(branch?.gstin || branch?.gst_number) && (
+          {(branch?.gstin || branch?.gstNumber) && (
             <p className="text-slate-600 mt-1">
-              <span className="font-semibold">GSTIN:</span> {branch.gstin || branch.gst_number}
+              <span className="font-semibold">GSTIN:</span> {branch.gstin || branch.gstNumber}
             </p>
           )}
           {(branch?.phone || branch?.email) && (

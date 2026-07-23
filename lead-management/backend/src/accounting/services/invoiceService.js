@@ -63,7 +63,7 @@ const updateInvoice = async (tenantId, invoiceId, updateData) => {
       throw new ValidationError('Due date cannot be before invoice date');
     }
 
-    const updateFields = ['invoice_number', 'invoice_date', 'due_date', 'invoice_type', 'place_of_supply', 'currency', 'status'];
+    const updateFields = ['invoice_number', 'invoice_date', 'due_date', 'invoice_type', 'place_of_supply', 'currency', 'status', 'document_url'];
     const hasUpdates = updateFields.some(field => updateData[field] !== undefined);
     
     if (hasUpdates) {

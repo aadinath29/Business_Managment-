@@ -118,7 +118,7 @@ const updateQuotationStatus = async (tenantId, quotationId, updateData) => {
   const params = [tenantId, quotationId];
   let paramCount = 2;
 
-  const fields = ['status', 'validity_days', 'notes', 'customer_name', 'bill_to', 'ship_to', 'payment_terms', 'priority', 'shipping_amount', 'terms'];
+  const fields = ['status', 'validity_days', 'notes', 'customer_name', 'bill_to', 'ship_to', 'payment_terms', 'priority', 'shipping_amount', 'terms', 'document_url'];
   
   fields.forEach(field => {
     if (updateData[field] !== undefined) {

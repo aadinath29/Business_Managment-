@@ -227,14 +227,15 @@ const getBranchById = async (id, tenantId, userRole, userId) => {
 
   if (userRole === ROLES.TEAM_LEADER) {
     const assignedBranchId = await branchRepository.findTeamLeaderAssignedBranchId(userId);
-    if (id !== assignedBranchId) {
+    console.log({id, assignedBranchId, same: id === assignedBranchId});
+    if (String(id).toLowerCase() !== String(assignedBranchId).toLowerCase()) {
       throw new ForbiddenError('You are only authorized to view your assigned branch');
     }
   }
 
   if (userRole === ROLES.ADMIN) {
     const assignedBranchId = await branchRepository.findManagerAssignedBranchId(userId);
-    if (id !== assignedBranchId) {
+    if (String(id).toLowerCase() !== String(assignedBranchId).toLowerCase()) {
       throw new ForbiddenError('You are only authorized to view your assigned branch');
     }
   }
@@ -255,7 +256,7 @@ const updateBranch = async (id, tenantId, userRole, userId, data) => {
 
   if (userRole === ROLES.ADMIN) {
     const assignedBranchId = await branchRepository.findManagerAssignedBranchId(userId);
-    if (id !== assignedBranchId) {
+    if (String(id).toLowerCase() !== String(assignedBranchId).toLowerCase()) {
       throw new ForbiddenError('You are only authorized to update your assigned branch');
     }
     // A Branch Manager can never reassign or detach the manager binding —
@@ -311,14 +312,14 @@ const getQuarterlyTargets = async (id, tenantId, userRole, userId, financialYear
 
   if (userRole === ROLES.TEAM_LEADER) {
     const assignedBranchId = await branchRepository.findTeamLeaderAssignedBranchId(userId);
-    if (id !== assignedBranchId) {
+    if (String(id).toLowerCase() !== String(assignedBranchId).toLowerCase()) {
       throw new ForbiddenError('You are only authorized to view your assigned branch');
     }
   }
 
   if (userRole === ROLES.ADMIN) {
     const assignedBranchId = await branchRepository.findManagerAssignedBranchId(userId);
-    if (id !== assignedBranchId) {
+    if (String(id).toLowerCase() !== String(assignedBranchId).toLowerCase()) {
       throw new ForbiddenError('You are only authorized to view your assigned branch');
     }
   }
@@ -340,7 +341,7 @@ const updateQuarterlyTargets = async (id, tenantId, userRole, userId, data) => {
 
   if (userRole === ROLES.ADMIN) {
     const assignedBranchId = await branchRepository.findManagerAssignedBranchId(userId);
-    if (id !== assignedBranchId) {
+    if (String(id).toLowerCase() !== String(assignedBranchId).toLowerCase()) {
       throw new ForbiddenError('You are only authorized to update your assigned branch targets');
     }
   }

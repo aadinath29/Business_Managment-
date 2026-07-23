@@ -25,6 +25,11 @@ const createBranchSchema = z.object({
 
   status: z.string().trim().optional(),
   description: z.string().trim().nullable().optional(),
+  pincode: z.string().trim().nullable().optional(),
+  working_days: z.string().trim().nullable().optional(),
+  timezone: z.string().trim().nullable().optional(),
+  gst_number: z.string().trim().nullable().optional(),
+  pan_number: z.string().trim().nullable().optional(),
 
   // Operational metrics (leads/projects/employees) are system-derived — never accepted from clients.
   manager_id: z.string().uuid('Invalid manager user ID format').nullable().optional(),
@@ -48,6 +53,11 @@ const updateBranchSchema = z.object({
   achieved_target: z.number().nonnegative('Achieved target must be greater than or equal to 0').optional(),
   status: z.string().trim().optional(),
   description: z.string().trim().nullable().optional(),
+  pincode: z.string().trim().nullable().optional(),
+  working_days: z.string().trim().nullable().optional(),
+  timezone: z.string().trim().nullable().optional(),
+  gst_number: z.string().trim().nullable().optional(),
+  pan_number: z.string().trim().nullable().optional(),
   manager_id: z.string().uuid('Invalid manager user ID format').nullable().optional()
 }).strict('Unknown fields are not allowed');
 

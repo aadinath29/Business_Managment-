@@ -100,17 +100,15 @@ const updateLeadSchema = z.object({
   budget: z.number().nonnegative('Budget must be greater than or equal to 0').nullable().optional(),
   decision_maker: z.string().trim().nullable().optional(),
   expected_start_date: z.string()
-    .refine(isFutureOrToday, 'Expected start date must be today or in the future')
     .nullable()
     .optional(),
   business_need: z.string().trim().nullable().optional(),
   project_type: z.string().trim().nullable().optional(),
   lead_score: z.number().int().min(0).max(100).nullable().optional(),
-  priority: priorityEnum.optional(),
+  priority: priorityEnum.nullable().optional(),
   expected_revenue: z.number().nonnegative('Expected revenue must be greater than or equal to 0').nullable().optional(),
-  status: statusEnum.optional(),
+  status: statusEnum.nullable().optional(),
   next_follow_up_date: z.string()
-    .refine(isFutureOrToday, 'Next follow up date must be today or in the future')
     .nullable()
     .optional(),
   reminder_notes: z.string().trim().nullable().optional()

@@ -1,5 +1,5 @@
 const authService = require('../services/authService');
-const { loginSchema, refreshSchema } = require('../validators/authValidator');
+const { loginSchema, refreshSchema, forgotPasswordSchema, resetPasswordSchema } = require('../validators/authValidator');
 const { ValidationError, TokenMissingError } = require('../errors/authErrors');
 
 const validate = (schema, data) => {
@@ -122,10 +122,53 @@ const getMe = async (req, res, next) => {
   }
 };
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const validatedData = validate(forgotPasswordSchema, req.body);
+    
+    // We need the frontend origin URL to create the reset link
+    // Default to a hardcoded localhost if origin is missing, but preferably use req.headers.origin
+    const originUrl = req.headers.origin || 'http://localhost:5173';
+    
+    await authService.forgotPassword(validatedData.email, originUrl);
+
+    return res.status(200).json({
+      success: true,
+      message: 'If the email exists, a password reset link has been sent.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const validatedData = validate(resetPasswordSchema, req.body);
+    
+    await authService.resetPassword(validatedData.token, validatedData.password);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password has been reset successfully.'
+    });
+  } catch (error) {
+    // Note: It's better to catch specific errors (like TokenExpiredError) and return 400 Bad Request
+    if (error.message === 'Token is invalid or has expired') {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+    next(error);
+  }
+};
+
 module.exports = {
   login,
   refresh,
   logout,
   logoutAll,
-  getMe
+  getMe,
+  forgotPassword,
+  resetPassword
 };

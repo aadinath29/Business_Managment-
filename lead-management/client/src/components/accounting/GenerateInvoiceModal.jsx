@@ -6,7 +6,7 @@ import { exportToPDF } from '../../utils/pdfExport';
 import { TaxInvoicePrintTemplate } from './TaxInvoicePrintTemplate';
 import { accountingApi } from '../../services/api/accountingApi';
 
-export function GenerateInvoiceModal({ onClose, onSave, initialData, availableProformas = [], documentBranch }) {
+export function GenerateInvoiceModal({ onClose, onSave, initialData, availableProformas = [], existingInvoices = [], documentBranch }) {
   const documentRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -100,7 +100,19 @@ export function GenerateInvoiceModal({ onClose, onSave, initialData, availablePr
         
         setAdvanceRequired(sourceProforma.advanceRequired || false);
         setAdvancePercentage(sourceProforma.advancePercentage || 0);
-        setAdvanceAmount(sourceProforma.advanceAmount || 0);
+
+        // Calculate already-paid amount from existing invoices linked to this proforma
+        // inv.refNo stores the proforma UUID (from proforma_id column), so match against proformaId
+        const alreadyPaidFromLinkedInvoices = existingInvoices
+          .filter(inv => inv.refNo === sourceProforma.proformaId)
+          .reduce((sum, inv) => sum + (inv.amountPaid || 0), 0);
+
+        if (alreadyPaidFromLinkedInvoices > 0) {
+          setAdvanceAmount(alreadyPaidFromLinkedInvoices);
+          setAdvancePaymentReceived(true);
+        } else {
+          setAdvanceAmount(sourceProforma.advanceAmount || 0);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch full proforma details", error);

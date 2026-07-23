@@ -11,10 +11,13 @@ const pool = new Pool({
 
 async function run() {
   try {
-    const user = await pool.query(`
-      SELECT id, first_name, last_name, email, role FROM users WHERE first_name ILIKE '%Harsh%'
+    const res = await pool.query(`
+      SELECT b.id, b.branch_name, b.manager_id, u.first_name, u.last_name 
+      FROM branches b 
+      LEFT JOIN users u ON b.manager_id = u.id
+      WHERE b.id IN ('a1710e8c-3204-4dda-bffc-929c9cc22cc1', 'd3a62b2d-c688-4f9e-b04d-51c93873af57')
     `);
-    console.log('Users matching Harsh:', user.rows);
+    console.log('Branches:', res.rows);
   } catch (err) {
     console.error('Error:', err);
   } finally {

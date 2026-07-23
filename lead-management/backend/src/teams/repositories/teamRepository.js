@@ -113,12 +113,23 @@ const findAllTeams = async (tenantId, filters, client = db) => {
     const searchIdx = params.length;
     filterConditions += ` AND (
       t.team_name ILIKE $${searchIdx} OR
-      t.department ILIKE $${searchIdx}
+      t.department ILIKE $${searchIdx} OR
+      b.branch_name ILIKE $${searchIdx} OR
+      u.first_name ILIKE $${searchIdx} OR
+      u.last_name ILIKE $${searchIdx} OR
+      (u.first_name || ' ' || u.last_name) ILIKE $${searchIdx}
     )`;
   }
 
   // 1. Get total match count
-  const countQuery = `SELECT COUNT(*) FROM teams t ${filterConditions}`;
+  const countQuery = `
+    SELECT COUNT(*) 
+    FROM teams t
+    LEFT JOIN branches b ON t.branch_id = b.id AND b.deleted_at IS NULL
+    LEFT JOIN team_leaders tl ON t.id = tl.team_id
+    LEFT JOIN users u ON tl.user_id = u.id AND u.deleted_at IS NULL
+    ${filterConditions}
+  `;
   const countRes = await client.query(countQuery, params);
   const total = parseInt(countRes.rows[0].count, 10);
 

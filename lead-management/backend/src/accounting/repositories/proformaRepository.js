@@ -119,7 +119,7 @@ const updateProforma = async (tenantId, proformaId, updateData) => {
   const params = [tenantId, proformaId];
   let paramCount = 2;
 
-  const fields = ['proforma_number', 'proforma_date', 'due_date', 'status', 'notes'];
+  const fields = ['proforma_number', 'proforma_date', 'due_date', 'status', 'notes', 'document_url'];
   
   fields.forEach(field => {
     if (updateData[field] !== undefined) {

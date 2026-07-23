@@ -14,6 +14,8 @@ import { BranchesPage } from './pages/Branches/BranchesPage';
 import { AccountingDashboard } from './pages/Accounting/AccountingDashboard';
 import { AccountingLeadDetail } from './pages/Accounting/AccountingLeadDetail';
 import { Login } from './pages/Login';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { Unauthorized } from './pages/Unauthorized';
 import AiAssistantPage from './pages/AiAssistantPage';
 import { BranchProvider } from './context/BranchContext';
@@ -27,6 +29,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/" element={<ProtectedRoute><BranchProvider><AppLayout /></BranchProvider></ProtectedRoute>}>
             <Route index element={<Navigate to="/dashboard" replace />} />
@@ -58,13 +62,25 @@ function App() {
             </Route>
 
             <Route path="reports" element={<ReportsPage />} />
-            <Route path="branches/:branchId?" element={<BranchesPage />} />
+            <Route path="branches/:branchId?" element={
+              <RoleBasedRoute allowedRoles={['admin', 'branch_manager']}>
+                <BranchesPage />
+              </RoleBasedRoute>
+            } />
             <Route path="leads/:id" element={<LeadDetailPage />} />
 
             {/* Accounting Routes */}
             <Route path="accounting">
-              <Route index element={<AccountingDashboard />} />
-              <Route path=":id" element={<AccountingLeadDetail />} />
+              <Route index element={
+                <RoleBasedRoute allowedRoles={['admin', 'branch_manager']}>
+                  <AccountingDashboard />
+                </RoleBasedRoute>
+              } />
+              <Route path=":id" element={
+                <RoleBasedRoute allowedRoles={['admin', 'branch_manager']}>
+                  <AccountingLeadDetail />
+                </RoleBasedRoute>
+              } />
             </Route>
           </Route>
         </Routes>

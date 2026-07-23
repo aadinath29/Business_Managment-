@@ -11,10 +11,10 @@ const pool = new Pool({
 
 async function run() {
   try {
-    const user = await pool.query(`
-      SELECT id, first_name, last_name, email, role FROM users WHERE first_name ILIKE '%Harsh%'
+    const branches = await pool.query(`
+      SELECT id, branch_name, manager_id FROM branches WHERE manager_id = '61c91173-e1d3-41da-a894-86311b3fbd9d'
     `);
-    console.log('Users matching Harsh:', user.rows);
+    console.log('Branches managed by Harsh:', branches.rows);
   } catch (err) {
     console.error('Error:', err);
   } finally {

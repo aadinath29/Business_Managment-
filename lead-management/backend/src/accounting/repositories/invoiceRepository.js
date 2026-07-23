@@ -153,7 +153,7 @@ const updateInvoice = async (tenantId, invoiceId, updateData) => {
   const params = [tenantId, invoiceId];
   let paramCount = 2;
 
-  const fields = ['invoice_number', 'invoice_date', 'due_date', 'invoice_type', 'place_of_supply', 'currency', 'status'];
+  const fields = ['invoice_number', 'invoice_date', 'due_date', 'invoice_type', 'place_of_supply', 'currency', 'status', 'document_url'];
   
   fields.forEach(field => {
     if (updateData[field] !== undefined) {

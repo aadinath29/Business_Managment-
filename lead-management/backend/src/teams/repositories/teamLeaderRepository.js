@@ -97,8 +97,10 @@ const findAllLeaders = async (tenantId, filters, client = db) => {
     filterConditions += ` AND (
       u.first_name ILIKE $${searchIdx} OR
       u.last_name ILIKE $${searchIdx} OR
+      (u.first_name || ' ' || u.last_name) ILIKE $${searchIdx} OR
       tl.employee_id ILIKE $${searchIdx} OR
-      t.team_name ILIKE $${searchIdx}
+      t.team_name ILIKE $${searchIdx} OR
+      b.branch_name ILIKE $${searchIdx}
     )`;
   }
 
@@ -107,6 +109,7 @@ const findAllLeaders = async (tenantId, filters, client = db) => {
     FROM team_leaders tl
     JOIN users u ON tl.user_id = u.id AND u.deleted_at IS NULL
     LEFT JOIN teams t ON tl.team_id = t.id AND t.deleted_at IS NULL
+    LEFT JOIN branches b ON t.branch_id = b.id AND b.deleted_at IS NULL
     ${filterConditions}
   `;
   const countRes = await client.query(countQuery, params);
@@ -118,6 +121,7 @@ const findAllLeaders = async (tenantId, filters, client = db) => {
     FROM team_leaders tl
     JOIN users u ON tl.user_id = u.id AND u.deleted_at IS NULL
     LEFT JOIN teams t ON tl.team_id = t.id AND t.deleted_at IS NULL
+    LEFT JOIN branches b ON t.branch_id = b.id AND b.deleted_at IS NULL
     ${filterConditions}
     ORDER BY tl.created_at DESC
   `;

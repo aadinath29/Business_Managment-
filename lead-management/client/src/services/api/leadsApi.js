@@ -107,6 +107,10 @@ export const leadsApi = {
       if (!backendKey) return; // skip keys not in schema — backend is .strict()
       if (key === 'websiteInquiry') {
         payload[backendKey] = val === 'Yes' || val === true;
+      } else if (['budget', 'expectedRevenue', 'leadScore'].includes(key)) {
+        payload[backendKey] = val !== null && val !== '' && val !== undefined ? Number(val) : null;
+      } else if (['expectedStartDate', 'nextFollowUpDate'].includes(key)) {
+        payload[backendKey] = val === '' ? null : val;
       } else {
         payload[backendKey] = val;
       }

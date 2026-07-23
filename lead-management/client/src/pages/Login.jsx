@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Card } from '../components/UI/Card';
 import { Button } from '../components/UI/Button';
@@ -53,7 +53,14 @@ export function Login() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Password</label>
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-slate-700">Password</label>
+                <div className="text-sm">
+                  <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+                    Forgot your password?
+                  </Link>
+                </div>
+              </div>
               <div className="mt-1">
                 <input
                   type="password"

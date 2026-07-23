@@ -19,6 +19,13 @@ export function Sidebar({ onClose }) {
   const navigate = useNavigate();
   
   const filteredNavItems = navItems.filter(item => {
+    if (item.path === '/branches' && role === 'team_leader') {
+      return false;
+    }
+    if (item.path === '/accounting' && role === 'team_leader') {
+      return false;
+    }
+
     if (!item.roles) return true;
     
     // Some items might be restricted by standard role or strict backendRole
@@ -50,7 +57,7 @@ export function Sidebar({ onClose }) {
             }
           >
             <item.icon className="w-5 h-5 mr-3 shrink-0" />
-            {item.path === '/branches' && (role === 'team_leader' || role === 'branch_manager') ? 'Branch' : item.label}
+            {item.path === '/branches' && role === 'branch_manager' ? 'Branch' : item.label}
           </NavLink>
         ))}
       </nav>

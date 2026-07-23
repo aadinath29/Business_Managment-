@@ -41,7 +41,8 @@ const updateProformaSchema = z.object({
   due_date: z.string().refine(val => !isNaN(new Date(val).getTime()), 'Invalid date format').optional().nullable(),
   status: proformaStatusEnum.optional(),
   notes: z.string().trim().optional().nullable(),
-  items: z.array(proformaItemSchema).min(1, 'At least one item is required').optional()
+  items: z.array(proformaItemSchema).min(1, 'At least one item is required').optional(),
+  document_url: z.string().optional().nullable()
 }).strict('Unknown fields are not allowed');
 
 module.exports = {

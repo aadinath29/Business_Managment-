@@ -11,10 +11,11 @@ const pool = new Pool({
 
 async function run() {
   try {
-    const user = await pool.query(`
-      SELECT id, first_name, last_name, email, role FROM users WHERE first_name ILIKE '%Harsh%'
-    `);
-    console.log('Users matching Harsh:', user.rows);
+    const roles = await pool.query('SELECT * FROM roles');
+    console.log('Roles:', roles.rows);
+    
+    const harsh = await pool.query(`SELECT role_id FROM users WHERE id = '61c91173-e1d3-41da-a894-86311b3fbd9d'`);
+    console.log('Harsh role_id:', harsh.rows);
   } catch (err) {
     console.error('Error:', err);
   } finally {

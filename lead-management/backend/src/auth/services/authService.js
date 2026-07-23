@@ -10,6 +10,7 @@ const {
   TokenExpiredError,
   TenantMismatchError
 } = require('../errors/authErrors');
+const { sendResetEmail } = require('../../utils/email');
 
 /**
  * Handle User Login flow.
@@ -193,10 +194,57 @@ const getCurrentUser = async (userId) => {
   };
 };
 
+/**
+ * Handle Forgot Password flow.
+ */
+const forgotPassword = async (email, originUrl) => {
+  const user = await authRepository.findUserByEmail(email);
+  if (!user) {
+    // Return success anyway to prevent email enumeration attacks
+    return true;
+  }
+  if (user.status !== 'Active') {
+    return true;
+  }
+
+  // Generate a random token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  
+  // Set expiry to 1 hour from now
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); 
+
+  await authRepository.savePasswordResetToken(user.id, resetToken, expiresAt);
+
+  const resetUrl = `${originUrl}/reset-password?token=${resetToken}`;
+  await sendResetEmail(user.email, resetUrl);
+
+  return true;
+};
+
+/**
+ * Handle Reset Password flow.
+ */
+const resetPassword = async (token, newPassword) => {
+  const user = await authRepository.findUserByResetToken(token);
+  if (!user) {
+    throw new Error('Token is invalid or has expired'); // In a real app, define a specific Error class
+  }
+
+  const passwordHash = await passwordHelper.hashPassword(newPassword);
+  await authRepository.updatePassword(user.id, passwordHash);
+  
+  // Optionally log the user out of all existing sessions for security
+  await authRepository.deleteAllUserSessions(user.id);
+
+  return true;
+};
+
 module.exports = {
   login,
   refresh,
   logout,
   logoutAll,
-  getCurrentUser
+  getCurrentUser,
+  forgotPassword,
+  resetPassword
 };

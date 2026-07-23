@@ -69,6 +69,7 @@ const mapQuotationToFrontend = (q) => {
     totalAmount: grandTotal,
     validity: q.validity_days ? `${q.validity_days} Days` : '30 Days',
     notes: q.notes || '',
+    document: q.document_url || null,
     // Items will be attached separately on detail fetch
     items: (q.items || []).map(mapQuotationItemToFrontend),
     totals: {
@@ -127,6 +128,7 @@ const mapProformaToFrontend = (p) => {
     baseAmount: subtotal,
     taxAmount: taxTotal,
     notes: p.notes || '',
+    document: p.document_url || null,
     items: (p.items || []).map(mapQuotationItemToFrontend),
     totals: {
       subtotal: subtotal + discountTotal,
@@ -167,6 +169,7 @@ const mapInvoiceToFrontend = (inv) => {
     amountPaid: amountPaid,
     balanceDue: balanceDue,
     notes: inv.notes || '',
+    document: inv.document_url || null,
     items: (inv.items || []).map(mapQuotationItemToFrontend),
     totals: {
       subtotal: subtotal + discountTotal,
@@ -453,6 +456,28 @@ export const accountingApi = {
     if (frontendData.notes !== undefined) payload.notes = frontendData.notes;
 
     const response = await apiClient.put(`/accounting/payments/${paymentId}`, payload);
+    return mapPaymentToFrontend(response.data?.data);
+  },
+
+  // --- Document Upload (persists document_url to DB so it survives refresh) ---
+
+  uploadQuotationDocument: async (quotationId, documentUrl) => {
+    const response = await apiClient.put(`/accounting/quotations/${quotationId}`, { document_url: documentUrl });
+    return mapQuotationToFrontend(response.data?.data);
+  },
+
+  uploadProformaDocument: async (proformaId, documentUrl) => {
+    const response = await apiClient.put(`/accounting/proformas/${proformaId}`, { document_url: documentUrl });
+    return mapProformaToFrontend(response.data?.data);
+  },
+
+  uploadInvoiceDocument: async (invoiceId, documentUrl) => {
+    const response = await apiClient.put(`/accounting/invoices/${invoiceId}`, { document_url: documentUrl });
+    return mapInvoiceToFrontend(response.data?.data);
+  },
+
+  uploadPaymentDocument: async (paymentId, documentUrl) => {
+    const response = await apiClient.put(`/accounting/payments/${paymentId}`, { document_url: documentUrl });
     return mapPaymentToFrontend(response.data?.data);
   },
 };

@@ -46,9 +46,9 @@ const AiAssistantPage = () => {
       <div className="w-full bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col flex-1 overflow-hidden">
         
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 bg-indigo-600">
+        <div className="p-4 border-b border-gray-200 bg-blue-600">
           <h2 className="text-xl font-bold text-white">Lead Search Assistant</h2>
-          <p className="text-indigo-200 text-sm">Ask me to find leads based on priority or status.</p>
+          <p className="text-blue-200 text-sm">Ask me to find leads based on priority or status.</p>
         </div>
 
         {/* Chat Area */}
@@ -64,7 +64,7 @@ const AiAssistantPage = () => {
               <div
                 className={`max-w-[75%] p-4 rounded-lg ${
                   msg.role === 'user'
-                    ? 'bg-indigo-600 text-white rounded-br-none'
+                    ? 'bg-blue-600 text-white rounded-br-none'
                     : msg.isError
                     ? 'bg-red-100 text-red-800 rounded-bl-none border border-red-300'
                     : 'bg-gray-100 text-gray-800 rounded-bl-none'
@@ -91,13 +91,13 @@ const AiAssistantPage = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about your leads..."
-              className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Send
             </button>

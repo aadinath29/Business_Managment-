@@ -45,7 +45,8 @@ const updateQuotationSchema = z.object({
   terms: z.string().trim().optional().nullable(),
   items: z.array(quotationItemSchema).optional(),
   quotation_number: z.string().trim().optional(),
-  quotation_date: z.string().optional()
+  quotation_date: z.string().optional(),
+  document_url: z.string().optional().nullable()
 }).strict('Unknown fields are not allowed');
 
 const listQuotationsQuerySchema = z.object({

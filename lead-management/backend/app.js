@@ -82,7 +82,8 @@ app.use('/api/v1/ai-assistant', aiRoutes);
 
 // --- PROTECTED ROUTES ---
 // --- PROTECTED ROUTES ---
-const { authenticate, tenantGuard } = require('./src/auth/middlewares/authMiddleware');
+const { authenticate, tenantGuard, authorize } = require('./src/auth/middlewares/authMiddleware');
+const { ROLES } = require('./src/auth/constants/authConstants');
 const protectedRouter = express.Router();
 
 // Register branch routes
@@ -149,7 +150,7 @@ protectedRouter.use('/tasks', authenticate, tenantGuard, taskRoutes);
 
 // Register accounting routes
 const accountingRoutes = require('./src/accounting/routes/accountingRoutes');
-protectedRouter.use('/accounting', authenticate, tenantGuard, accountingRoutes);
+protectedRouter.use('/accounting', authenticate, tenantGuard, authorize(ROLES.SUPER_ADMIN, ROLES.ADMIN), accountingRoutes);
 
 // Mount the protected router to /api/v1
 app.use('/api/v1', protectedRouter);

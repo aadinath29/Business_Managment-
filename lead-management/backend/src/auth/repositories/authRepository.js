@@ -105,6 +105,53 @@ const deleteAllUserSessions = async (userId) => {
   return rowCount;
 };
 
+/**
+ * Saves a password reset token and expiry for a user.
+ * @param {string} userId 
+ * @param {string} token 
+ * @param {Date} expiresAt 
+ */
+const savePasswordResetToken = async (userId, token, expiresAt) => {
+  const queryText = `
+    UPDATE users 
+    SET reset_password_token = $1, reset_password_expires = $2 
+    WHERE id = $3
+  `;
+  await db.query(queryText, [token, expiresAt, userId]);
+};
+
+/**
+ * Finds user by reset token that hasn't expired.
+ * @param {string} token 
+ * @returns {Promise<object|null>}
+ */
+const findUserByResetToken = async (token) => {
+  const queryText = `
+    SELECT * FROM users 
+    WHERE reset_password_token = $1 
+      AND reset_password_expires > NOW()
+      AND deleted_at IS NULL
+  `;
+  const { rows } = await db.query(queryText, [token]);
+  return rows.length ? rows[0] : null;
+};
+
+/**
+ * Updates a user's password and clears the reset token fields.
+ * @param {string} userId 
+ * @param {string} passwordHash 
+ */
+const updatePassword = async (userId, passwordHash) => {
+  const queryText = `
+    UPDATE users 
+    SET password_hash = $1, 
+        reset_password_token = NULL, 
+        reset_password_expires = NULL 
+    WHERE id = $2
+  `;
+  await db.query(queryText, [passwordHash, userId]);
+};
+
 module.exports = {
   findUserByEmail,
   findUserById,
@@ -112,5 +159,8 @@ module.exports = {
   createSession,
   updateSessionToken,
   deleteSession,
-  deleteAllUserSessions
+  deleteAllUserSessions,
+  savePasswordResetToken,
+  findUserByResetToken,
+  updatePassword
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card } from '../../components/UI/Card';
-import { Edit2, Trash2, Check, X } from 'lucide-react';
+import { Edit2, Trash2, Check, X, Eye } from 'lucide-react';
 import { NewQuotationModal } from '../../components/accounting/NewQuotationModal';
 import { GenerateInvoiceModal } from '../../components/accounting/GenerateInvoiceModal';
 import { GenerateProformaModal } from '../../components/accounting/GenerateProformaModal';
@@ -139,22 +139,103 @@ export function AccountingLeadDetail() {
     return sum + (p.totals?.grandTotal || p.totalAmount || 0);
   }, 0);
 
-  const outstandingAmount = invoices.reduce((sum, inv) => sum + (inv.balanceDue || 0), 0);
+  const outstandingAmount = (() => {
+    if (invoices.length === 0) return acceptedPipeline;
+    // Group invoices by their linked proforma (refNo = proforma UUID).
+    // For each proforma group take only the MIN balanceDue (most-paid invoice)
+    // so multiple invoices against the same proforma don't double-count.
+    const proformaGroups = {};
+    const unlinked = [];
+    invoices.forEach(inv => {
+      if (inv.refNo) {
+        if (!proformaGroups[inv.refNo]) proformaGroups[inv.refNo] = [];
+        proformaGroups[inv.refNo].push(inv);
+      } else {
+        unlinked.push(inv);
+      }
+    });
+    let total = unlinked.reduce((sum, inv) => sum + (inv.balanceDue || 0), 0);
+    Object.values(proformaGroups).forEach(group => {
+      const minBalance = Math.min(...group.map(inv => inv.balanceDue || 0));
+      total += minBalance;
+    });
+    return total;
+  })();
 
   // --- Document Upload Handler ---
-  const handleFileUpload = (e, recordId, type) => {
+  // Converts the file to a Base64 data URL and persists it to the DB via the API
+  // so the document link survives a page refresh.
+  const handleFileUpload = async (e, recordId, type) => {
     const file = e.target.files[0];
     if (!file) return;
-    const documentUrl = URL.createObjectURL(file);
+
+    // Validate file size (limit to 5MB to avoid backend 413 Payload Too Large)
+    // Base64 encoding adds ~33% overhead, so a 5MB file becomes ~6.6MB, safely under the 10MB limit.
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+    if (file.size > MAX_FILE_SIZE) {
+      alert("File size exceeds 5MB limit. Please upload a smaller document.");
+      e.target.value = ''; // Reset input
+      return;
+    }
+
+    const toBase64 = (f) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(f);
+    });
+
+    try {
+      const documentUrl = await toBase64(file);
+
+      if (type === 'quotation') {
+        await accountingApi.uploadQuotationDocument(recordId, documentUrl);
+        setQuotations(prev => prev.map(q => q.quotationId === recordId ? { ...q, document: documentUrl } : q));
+      } else if (type === 'proforma') {
+        await accountingApi.uploadProformaDocument(recordId, documentUrl);
+        setProformas(prev => prev.map(p => p.proformaId === recordId ? { ...p, document: documentUrl } : p));
+      } else if (type === 'invoice') {
+        await accountingApi.uploadInvoiceDocument(recordId, documentUrl);
+        setInvoices(prev => prev.map(i => i.invoiceId === recordId ? { ...i, document: documentUrl } : i));
+      } else if (type === 'payment') {
+        await accountingApi.uploadPaymentDocument(recordId, documentUrl);
+        setPayments(prev => prev.map(p => p.id === recordId ? { ...p, document: documentUrl } : p));
+      }
+    } catch (err) {
+      console.error('Document upload failed:', err);
+      alert('Failed to save document. Please try again.');
+    }
+  };
+
+  // --- Document View Handler ---
+  // Safely opens base64 data URLs in a new tab to bypass browser security restrictions
+  // on top-level navigation to data URIs (which results in blank pages).
+  const handleViewDocument = (base64Url) => {
+    if (!base64Url) return;
     
-    if (type === 'quotation') {
-      setQuotations(prev => prev.map(q => q.quotationId === recordId ? { ...q, document: documentUrl } : q));
-    } else if (type === 'proforma') {
-      setProformas(prev => prev.map(p => p.proformaId === recordId ? { ...p, document: documentUrl } : p));
-    } else if (type === 'invoice') {
-      setInvoices(prev => prev.map(i => i.invoiceId === recordId ? { ...i, document: documentUrl } : i));
-    } else if (type === 'payment') {
-      setPayments(prev => prev.map(p => p.id === recordId ? { ...p, document: documentUrl } : p));
+    if (base64Url.startsWith('data:')) {
+      try {
+        const arr = base64Url.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        
+        // Optionally revoke URL after some time to free memory, though for a new tab it's tricky.
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      } catch (e) {
+        console.error("Error displaying document:", e);
+        window.open(base64Url, '_blank'); // Fallback
+      }
+    } else {
+      window.open(base64Url, '_blank');
     }
   };
 
@@ -647,9 +728,9 @@ export function AccountingLeadDetail() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-center border-b border-slate-100/50">
                                 {latestRecord.document ? (
-                                  <a href={latestRecord.document} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-medium flex items-center justify-center">
+                                  <button onClick={() => handleViewDocument(latestRecord.document)} className="text-blue-600 hover:underline text-xs font-medium flex items-center justify-center">
                                     📄 View
-                                  </a>
+                                  </button>
                                 ) : (
                                   <label className="text-[#108A63] hover:underline cursor-pointer text-xs font-medium flex items-center justify-center">
                                     ⬆ Upload
@@ -682,7 +763,7 @@ export function AccountingLeadDetail() {
                                       className="text-slate-400 hover:text-blue-600 transition-colors px-1"
                                       title={proformas.some(p => p.refNo === parent.quotationNumber) ? "View Quotation (Read Only)" : "Edit Quotation"}
                                     >
-                                      <Edit2 className="w-4 h-4" />
+                                        {proformas.some(p => p.refNo === parent.quotationNumber) ? <Eye className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
                                     </button>
                                     <button 
                                       onClick={() => handleDeleteQuotation(latestRecord)}
@@ -765,8 +846,8 @@ export function AccountingLeadDetail() {
                                           className="text-slate-400 hover:text-blue-600 transition-colors px-1"
                                           title={proformas.some(p => p.refNo === parent.quotationNumber) || !q.isLatestRevision ? "View Quotation (Read Only)" : "Edit Quotation"}
                                         >
-                                          <Edit2 className="w-4 h-4" />
-                                        </button>
+                                        {proformas.some(p => p.refNo === parent.quotationNumber) || !q.isLatestRevision ? <Eye className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+                                      </button>
                                         <button 
                                           onClick={() => q.isLatestRevision ? handleDeleteQuotation(q) : null}
                                           disabled={!q.isLatestRevision || proformas.some(p => p.refNo === parent.quotationNumber)}
@@ -875,9 +956,9 @@ export function AccountingLeadDetail() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-center border-b border-slate-100/50">
                             {p.document ? (
-                              <a href={p.document} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-medium flex items-center justify-center">
+                              <button onClick={() => handleViewDocument(p.document)} className="text-blue-600 hover:underline text-xs font-medium flex items-center justify-center">
                                 📄 View
-                              </a>
+                              </button>
                             ) : (
                               <label className="text-[#108A63] hover:underline cursor-pointer text-xs font-medium flex items-center justify-center">
                                 ⬆ Upload
@@ -965,9 +1046,9 @@ export function AccountingLeadDetail() {
                             <td className="px-6 py-5 whitespace-nowrap text-xs text-slate-900 font-medium text-center">{formatCurrencyINR(invoice.totalAmount)}</td>
                             <td className="px-6 py-5 whitespace-nowrap text-center border-b border-slate-100/50">
                               {invoice.document ? (
-                                <a href={invoice.document} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-medium flex items-center justify-center">
+                                <button onClick={() => handleViewDocument(invoice.document)} className="text-blue-600 hover:underline text-xs font-medium flex items-center justify-center">
                                   📄 View
-                                </a>
+                                </button>
                               ) : (
                                 <label className="text-[#108A63] hover:underline cursor-pointer text-xs font-medium flex items-center justify-center">
                                   ⬆ Upload
@@ -1066,9 +1147,9 @@ export function AccountingLeadDetail() {
                                 <td className="px-6 py-5 whitespace-nowrap text-xs text-slate-600">{payment.paymentMode}</td>
                                 <td className="px-6 py-5 whitespace-nowrap text-center">
                                   {payment.document ? (
-                                    <a href={payment.document} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-medium flex items-center justify-center">
+                                    <button onClick={() => handleViewDocument(payment.document)} className="text-blue-600 hover:underline text-xs font-medium flex items-center justify-center">
                                       📄 View
-                                    </a>
+                                    </button>
                                   ) : (
                                     <label className="text-[#108A63] hover:underline cursor-pointer text-xs font-medium flex items-center justify-center">
                                       ⬆ Upload
@@ -1131,6 +1212,7 @@ export function AccountingLeadDetail() {
           onSave={handleSaveInvoice}
           initialData={editingInvoiceData}
           availableProformas={proformas}
+          existingInvoices={invoices}
           documentBranch={documentBranch}
         />
       )}

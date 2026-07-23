@@ -71,7 +71,7 @@ const updateProforma = async (tenantId, proformaId, updateData) => {
       throw new ValidationError('Due date cannot be before proforma date');
     }
 
-    const updateFields = ['proforma_number', 'proforma_date', 'due_date', 'status', 'notes'];
+    const updateFields = ['proforma_number', 'proforma_date', 'due_date', 'status', 'notes', 'document_url'];
     const hasUpdates = updateFields.some(field => updateData[field] !== undefined);
     
     if (hasUpdates) {

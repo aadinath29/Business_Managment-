@@ -43,7 +43,8 @@ const updateInvoiceSchema = z.object({
   place_of_supply: z.string().trim().optional().nullable(),
   currency: z.string().trim().optional(),
   status: invoiceStatusEnum.optional(),
-  items: z.array(invoiceItemSchema).min(1, 'At least one item is required').optional()
+  items: z.array(invoiceItemSchema).min(1, 'At least one item is required').optional(),
+  document_url: z.string().optional().nullable()
 }).strict('Unknown fields are not allowed');
 
 module.exports = {

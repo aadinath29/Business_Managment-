@@ -28,6 +28,7 @@ const getAccountingDashboard = async (req, res, next) => {
           l.branch_id AS "branchId",
           COALESCE(p.total_amount, 0) AS "totalAmount",
           COALESCE(i.total_outstanding_balance, 0) AS "remainingAmount",
+          COALESCE(i.invoice_count, 0) AS "invoiceCount",
           p.latest_due_date AS "dueDate"
       FROM leads l
       LEFT JOIN branches b ON l.branch_id = b.id
@@ -43,9 +44,18 @@ const getAccountingDashboard = async (req, res, next) => {
       LEFT JOIN (
           SELECT
               lead_id,
-              SUM(balance_due) AS total_outstanding_balance
-          FROM accounting_invoices
-          WHERE tenant_id = $1
+              SUM(min_balance_due) AS total_outstanding_balance,
+              SUM(invoice_count) AS invoice_count
+          FROM (
+              SELECT
+                  lead_id,
+                  COALESCE(proforma_id::text, id::text) AS group_key,
+                  MIN(balance_due) AS min_balance_due,
+                  COUNT(id) AS invoice_count
+              FROM accounting_invoices
+              WHERE tenant_id = $1
+              GROUP BY lead_id, COALESCE(proforma_id::text, id::text)
+          ) grp
           GROUP BY lead_id
       ) i ON l.id = i.lead_id
       WHERE l.tenant_id = $1 
@@ -61,16 +71,16 @@ const getAccountingDashboard = async (req, res, next) => {
     // Map status directly from the query results for the API response.
     // Business Rule: If Total Outstanding Balance == 0 -> Status = Paid, Else -> Unpaid
     const formattedData = result.rows.map(row => {
-      // Remaining amount is total_outstanding_balance from invoices. 
-      // If the remaining amount is 0, status is Paid, else Unpaid.
-      const remainingAmount = Number(row.remainingAmount) || 0;
-      const status = remainingAmount === 0 ? 'Paid' : 'Unpaid';
+      const totalAmount = Number(row.totalAmount) || 0;
+      const invoiceCount = Number(row.invoiceCount) || 0;
+      const remainingAmount = invoiceCount > 0 ? (Number(row.remainingAmount) || 0) : totalAmount;
+      const status = (totalAmount === 0 || remainingAmount > 0) ? 'Unpaid' : 'Paid';
       
       return {
         id: row.id,
         name: row.name,
         branchName: row.branchName,
-        totalAmount: Number(row.totalAmount),
+        totalAmount: totalAmount,
         remainingAmount: remainingAmount,
         dueDate: row.dueDate || '-',
         status: status,

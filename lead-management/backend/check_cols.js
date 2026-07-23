@@ -11,10 +11,12 @@ const pool = new Pool({
 
 async function run() {
   try {
-    const user = await pool.query(`
-      SELECT id, first_name, last_name, email, role FROM users WHERE first_name ILIKE '%Harsh%'
+    const res = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users';
     `);
-    console.log('Users matching Harsh:', user.rows);
+    console.log('Columns in users:', res.rows.map(r => r.column_name));
   } catch (err) {
     console.error('Error:', err);
   } finally {

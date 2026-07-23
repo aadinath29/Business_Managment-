@@ -60,7 +60,7 @@ const updateQuotation = async (tenantId, quotationId, updateData) => {
       throw new ValidationError('Quotation not found');
     }
 
-    const updateFields = ['status', 'validity_days', 'notes', 'customer_name', 'bill_to', 'ship_to', 'payment_terms', 'priority', 'shipping_amount', 'terms'];
+    const updateFields = ['status', 'validity_days', 'notes', 'customer_name', 'bill_to', 'ship_to', 'payment_terms', 'priority', 'shipping_amount', 'terms', 'document_url'];
     const hasUpdates = updateFields.some(field => updateData[field] !== undefined);
     
     if (hasUpdates) {
